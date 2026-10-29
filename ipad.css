@@ -1,0 +1,16 @@
+@media (pointer:coarse){
+ body{padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right)}
+ #game.active{width:98vw;max-width:none;padding-top:5px}
+ #game .arena-wrap{height:calc(100svh - 265px);min-height:280px;max-height:none;aspect-ratio:auto}
+ #game .game-bottom{display:block}#game .score-panel{display:none}
+ #game .controls{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:8px 14px;padding-bottom:max(8px,env(safe-area-inset-bottom))}
+ #game #abilityGrid{grid-template-columns:repeat(5,minmax(60px,82px));gap:7px}
+ #game .ability{height:62px;min-width:60px;touch-action:none;-webkit-user-select:none;user-select:none}
+ #game .ability kbd{display:none}#game .ability small{font-size:10px}
+ #game #keyboardHelp,#game .game-tip{display:none}
+ #game #movePad{width:146px;height:146px;display:block;flex-shrink:0;border-radius:50%;background:radial-gradient(circle,#334a5c,#102332);border:2px solid #f4c363;position:relative;touch-action:none}
+ #game #movePad>*{display:none}#game #movePad .ipad-stick{display:block;position:absolute;width:58px;height:58px;left:42px;top:42px;border-radius:50%;background:#e8b75d;border:3px solid #ffe3ac;box-shadow:0 4px 12px #0008;pointer-events:none}
+ #game button{touch-action:manipulation;min-height:44px}
+ #arena{touch-action:none}#game .game-top{margin-bottom:5px}
+ @media(orientation:portrait){#game .arena-wrap{height:48svh}#game #abilityGrid{grid-template-columns:repeat(4,minmax(52px,1fr))}#game .controls{gap:10px}#game #movePad{width:132px;height:132px}#game #movePad .ipad-stick{left:35px;top:35px}}
+}

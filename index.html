@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#090e18"><title>Heroic Showdown</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css"><link rel="stylesheet" href="hero.css">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
+<script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+<link rel="stylesheet" href="ipad.css"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Heroic Showdown"></head>
+<body>
+  <section id="openingIntro" class="opening-intro" role="dialog" aria-modal="true" aria-label="Ecal and Dark Armored cinematic" tabindex="-1" hidden>
+    <video id="openingVideo"  playsinline preload="metadata" aria-label="Heroic Showdown opening movie"></video>
+    <div id="openingPrompt" class="opening-prompt">
+      <button id="playOpeningIntro" class="btn btn-gold" type="button">▶ PLAY INTRO</button>
+      <p id="openingStatus" role="status">Watch the opening, or skip straight to the fight.</p>
+    </div>
+    <div class="opening-toolbar">
+      <div class="opening-playback">
+        <button id="openingSound" class="opening-control" type="button" aria-label="Mute intro" aria-pressed="true">SOUND ON</button>
+      </div>
+      <button id="skipOpeningIntro" class="opening-skip" type="button">SKIP INTRO <span>→</span></button>
+    </div>
+    <progress id="openingProgress" class="opening-progress" max="1" value="0" aria-label="Intro playback progress"></progress>
+  </section>
+  <div class="grain"></div>
+  <header class="topbar"><a class="brand" href="#"><span class="brand-mark">H</span><span>HEROIC <b>SHOWDOWN</b></span></a><div class="top-right"><span class="online-dot"></span> MULTIPLAYER READY</div></header>
+  <main>
+    <section id="home" class="screen active">
+      <div class="hero-copy"><div class="eyebrow"><i></i> A REAL-TIME SUPERHERO ADVENTURE</div><h1>THE CITY<br>NEEDS <em>YOU.</em></h1><p>Cross five shattered worlds with Red Dawn. Follow the safe path through falling fire rocks, frozen ruins, and broken dimensions to stop Mr. Misfit.</p>
+        <div class="hero-pick-label">CHOOSE YOUR HERO</div><div class="hero-pick"><button class="hero-option selected" data-hero="guardian"><img src="assets/hero-reference.jpg" alt=""><span><b>RED DAWN</b><small>MASK LASER · GOLD BLAST</small></span><i>✓</i></button><button class="hero-option" data-hero="wildclaw"><img src="assets/wildclaw-reference.jpg" alt=""><span><b>WILDCLAW</b><small>FIRE FIST · WALL CRAWL</small></span><i>✓</i></button><button class="hero-option" data-hero="finnew"><img src="assets/fin-new-reference.jpg" alt=""><span><b>FIN NEW</b><small>ARMORED HERO · GOLD CREST</small></span><i>✓</i></button><button class="hero-option" data-hero="ecal"><img src="assets/ecal-reference.png" alt="Ecal"><span><b>ECAL</b><small>TWIN BLASTERS · QUICK DODGE</small></span><i>✓</i></button><button class="hero-option" data-hero="lizard"><img src="assets/lizard-sword-reference.jpg" alt="Glowing ice sword"><span><b>LIZARD WARRIOR</b><small>ICE SWORD · HIGH JUMP</small></span><i>✓</i></button></div>
+        <div class="home-actions"><button id="createRoom" class="btn btn-gold"><span>CREATE A ROOM</span><b>↗</b></button><div class="join-row"><input id="joinCode" maxlength="6" placeholder="ENTER ROOM CODE" autocomplete="off"><button id="joinRoom" class="btn btn-outline">JOIN ROOM <b>→</b></button></div></div>
+        <div class="feature-line"><span>✦ 2–8 PLAYERS</span><span>✦ 3 ROUNDS</span><span>✦ SAVE THE CITY</span></div>
+      </div>
+      <div class="character-stage"><div class="sunburst"></div><div class="stage-label label-hero"><small>YOUR HERO</small><b>THE RED DAWN</b></div><img class="hero-art" src="assets/hero-reference.jpg" alt="Golden armored hero holding his helmet"><div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div><div class="stage-label label-villain"><small>ARMORED VILLAIN</small><b>MR. MISFIT <span>↗</span></b></div><img class="villain-art" src="assets/villain-reference.jpg" alt="Mr. Misfit, armored villain"><div class="stage-glow"></div></div>
+      <div class="scroll-note">MOVE · DODGE · FIGHT <span>✦</span> SAVE THE DAY</div>
+    </section>
+    <section id="lobby" class="screen">
+      <div class="lobby-head"><button class="back" id="backHome">← BACK</button><div class="eyebrow"><i></i> HERO ASSEMBLY</div><h2>YOUR CITY.<br><em>YOUR CREW.</em></h2><p>Send this room code to your friends so they can join from their phones.</p></div>
+      <div class="lobby-card"><div class="room-label">ROOM CODE <span id="connectionStatus" class="status-pill"><i></i> CONNECTING</span></div><div id="roomCode" class="room-code">••••••</div><button id="copyCode" class="copy-btn">▢ &nbsp;COPY CODE</button><div class="crew-title">HEROES IN THE CREW <span id="playerCount">1 / 8</span></div><div id="playerList" class="player-list"></div><div class="lobby-bottom"><span>Solo or multiplayer<br><b>Up to 8 heroes.</b></span><button id="startGame" class="btn btn-gold" disabled>START MISSION <b>→</b></button></div></div>
+    </section>
+    <section id="game" class="screen game-screen">
+      <div class="game-top"><div class="mission-tag"><i></i> LIVE MISSION <small id="roundLabel">LEVEL 1 / 5</small></div><div class="boss-health"><div class="boss-meta"><b>MR. MISFIT · WORLD CONQUEROR</b><span id="bossPhase">ARMORED</span></div><div class="health-track"><div id="bossHealth" class="health-fill"></div></div></div><div class="timer" id="timer">01:30</div></div>
+      <div id="keyboardHelp" class="keyboard-help" aria-live="polite">KEYBOARD: <kbd>W A S D</kbd> MOVE <kbd>SPACE</kbd> PUNCH <kbd>K</kbd> KICK <kbd>SHIFT</kbd> DODGE</div>
+      <div class="arena-wrap"><canvas id="arena" width="1000" height="610" aria-label="Superhero city arena"></canvas><div id="storyPanel" class="story-panel story-portal-scene"><div class="portal-rings" aria-hidden="true"></div><div class="story-panel-copy"><span class="story-kicker">THE SKY TURNS RED</span><h3>MR. MISFIT<br><em>MUST FALL.</em></h3><p>Fire rocks tear through the forest and a crash shakes the road as the sky turns crimson. Red Dawn follows the only safe path into a shattered dimension to stop Mr. Misfit. But if the red sky remains after the King falls, a greater enemy is still waiting.</p><b>FOLLOW THE PATH, SURVIVE THE COLLAPSE, THEN DEFEAT MR. MISFIT.</b><button id="beginFight" class="btn btn-gold">RISE UP <span>→</span></button><button id="introMusicToggle" class="music-toggle intro-music-toggle" type="button" aria-label="Mute Rise Up music" aria-pressed="true" hidden>♫ MUSIC ON</button></div><video id="riseUpVideo" class="bonecaller-art" hidden muted playsinline preload="none" aria-label="The Bonecaller with his wand, animated intro"></video><div class="story-villain-tag">MR. MISFIT<small>WORLD CONQUEROR</small></div></div><button id="musicToggle" class="music-toggle" type="button" aria-label="Mute Level 1 music" aria-pressed="true" hidden>♫ MUSIC ON</button><button id="cameraToggle" class="camera-toggle" type="button" aria-label="Cycle camera view: first person, front-facing, third person">VIEW · THIRD PERSON</button><div id="wandBossTag" class="wand-boss-tag"><img src="assets/bonecaller-reference.png" alt="The Bonecaller with his glowing wand"><span>THE BONECALLER<small>WAND BLAST | HAMMER BRUTES</small></span></div><div id="toast" class="toast"></div></div>
+      <div class="game-bottom"><div class="score-panel"><span class="score-title">HERO LEADERBOARD</span><div id="scores" class="scores"></div></div><div class="controls"><div class="move-pad" id="movePad" aria-label="Move superhero"><button type="button" data-dir="up" aria-label="Move forward (hold M on keyboard)">▲</button><button type="button" data-dir="left" aria-label="Move left">◀</button><span class="move-center">M<br>MOVE</span><button type="button" data-dir="right" aria-label="Move right">▶</button><button type="button" data-dir="down" aria-label="Move backward">▼</button></div><div id="abilityGrid" class="ability-grid"></div></div></div>
+      <div id="gameTip" class="game-tip">WASD / ARROWS MOVE <span>·</span> SPACE PUNCH <span>·</span> E BLAST <span>·</span> R HELMET <span>·</span> Q LASER <span>·</span> SHIFT DODGE</div>
+    </section>
+    <section id="results" class="screen results-screen"><div class="result-kicker">MISSION REPORT</div><h2 id="resultTitle">CITY SAVED!</h2><p id="resultCopy">The heroes stood together and saved the day.</p><div id="finalScores" class="final-scores"></div><button id="playAgain" class="btn btn-gold">BACK TO BASE <b>↗</b></button></section>
+  </main>
+  <footer><span>✦ &nbsp; EVERY HERO MAKES A DIFFERENCE</span><span>ROOM CODE PARTY GAME &nbsp;·&nbsp; 2–8 PLAYERS</span></footer>
+  <audio id="riseUpMusic" src="assets/red-dawn-return-intro.m4a" preload="metadata" loop></audio>
+  <audio id="levelOneMusic" src="assets/fight-level-1.m4a" preload="metadata" loop></audio>
+  <script src="assets/opening-canyon.js"></script>
+  <script src="assets/final-sky-data.js"></script>
+  <script src="final-realm.js?v=city-only-3"></script>
+  <script src="opening-split.js?v=1"></script>
+  <script src="opening-intro.js?v=toooonie-10"></script>
+  <script src="red-dawn-uppercut.js?v=getaway-5"></script>
+<script src="ashen-transition.js?v=getaway-2"></script>
+  <script src="warehouse.js"></script>
+  <script src="meteor-level.js"></script>
+  <script src="snow-street.js"></script>
+  <script src="assets/fire-texture-data.js"></script>
+  <script src="animated-fire.js"></script>
+  <script src="cinematic-backgrounds.js"></script>
+  <script src="assets/travel-textures.js"></script>
+  <script src="assets/frozen-collision.js"></script>
+  <script src="frozen-landscape.js"></script>
+  <script src="burning-city.js"></script>
+  <script src="assets/home-evidence-data.js"></script>
+<script src="assets/level3-addon-photos.js"></script>
+<script src="assets/village-night-photos.js"></script>
+<script src="village-water.js"></script>
+<script src="assets/village-photo-materials.js"></script>
+<script src="assets/village-deck-photos.js"></script>
+<script src="village-photo-effects.js"></script>
+<script src="village-warm-materials.js"></script>
+<script src="village-timber.js"></script>
+<script src="village-photo-skin.js"></script>
+<script src="village-interiors.js"></script>
+<script src="assets/village-scenery-data.js"></script>
+<script src="village-life.js"></script>
+<script src="village-endless-deck.js"></script>
+<script src="home-village.js"></script>
+<script src="assets/level3-terrain.js"></script>
+<script src="village-people.js?v=flat-ground-14"></script>
+<script src="model-village.js?v=warm-wood-10"></script>
+<script src="travel-world.js"></script>
+  <script defer src="assets/finnew-model-data.js?v=imported-fin-2"></script>
+<script src="hero-ground.js"></script>
+  <script src="foot-contact.js?v=steady-ground-4"></script>
+  <script src="foot-plant.js?v=smooth-2"></script>
+  <script src="ecal-character.js"></script>
+  <script src="meteor-hazards.js"></script>
+  <script src="assets/final-explosion-data.js"></script>
+  <script src="dark-boss.js"></script>
+  <script src="misfit-combat.js"></script>
+  <script src="frost-intro.js?v=disabled-cleanup-4"></script>
+  <script src="character-pose-safety.js?v=3"></script>
+<script src="stunt-performance.js?v=2"></script>
+  <script src="combat-performance.js?v=smooth-2"></script>
+  <script src="fin-impact.js?v=three-heroes-2"></script>
+  <script src="village-nature.js?v=1"></script>
+  <script src="clue-cinematic.js?v=clear-faces-9"></script>
+<script src="game.js?v=roster-24"></script>
+</body></html>
