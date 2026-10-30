@@ -135,11 +135,19 @@ window.createMeteorLevel = function (THREE) {
   const embers = new THREE.Points(emberGeometry, new THREE.PointsMaterial({map: glowMap, color: 0xff843f, size: .13, transparent: true, opacity: .82, blending: THREE.AdditiveBlending, depthWrite: false}));
   embers.frustumCulled = false; group.add(embers);
 
-  let backdrop = new THREE.Color(0x4a2119);
-  new THREE.TextureLoader().load('assets/level-one-meteor.jpg', loaded => {
-    loaded.colorSpace = THREE.SRGBColorSpace;
-    backdrop = loaded;
-  });
+  // Local cinematic sky for GitHub Pages where the optional meteor photo is absent.
+  const skyCanvas=document.createElement('canvas');skyCanvas.width=1024;skyCanvas.height=512;
+  const skyContext=skyCanvas.getContext('2d'),skyGradient=skyContext.createLinearGradient(0,0,0,512);
+  skyGradient.addColorStop(0,'#1b1721');skyGradient.addColorStop(.50,'#4d272b');
+  skyGradient.addColorStop(.83,'#9d4530');skyGradient.addColorStop(1,'#d07d56');
+  skyContext.fillStyle=skyGradient;skyContext.fillRect(0,0,1024,512);
+  for(let i=0;i<65;i++){
+    const x=random()*1024,y=160+random()*350,r=65+random()*160;
+    const haze=skyContext.createRadialGradient(x,y,0,x,y,r);
+    haze.addColorStop(0,'rgba(38,29,36,.21)');haze.addColorStop(1,'rgba(38,29,36,0)');
+    skyContext.fillStyle=haze;skyContext.fillRect(x-r,y-r,r*2,r*2);
+  }
+  const backdrop=new THREE.CanvasTexture(skyCanvas);backdrop.colorSpace=THREE.SRGBColorSpace;
 
   const pointOnFlight = (meteor, progress, target) => {
     target.lerpVectors(meteor.start, meteor.end, progress);
