@@ -300,16 +300,25 @@
   const frostCastNotice=document.createElement('div');frostCastNotice.hidden=true;
   frostCastNotice.style.cssText='position:absolute;left:20px;top:70px;z-index:30;background:#102235ee;color:white;padding:14px;border-radius:8px';
   frostCastNotice.textContent='Preparing Red Dawn and Wildclaw…';wrap.appendChild(frostCastNotice);
-  let frostCastPreloaded=false;
+  let frostCastPreloaded=false, frostCastLoadsSettled=false;
   function preloadFrostCast(){
     if(frostCastPreloaded)return;frostCastPreloaded=true;
-    for(const kind of ['golden','wildclaw'])if(!characterModelLoads.has(kind))characterModelLoads.set(kind,loadPlayerModel(characterModelFiles[kind],kind));
+    const loading=[];
+    for(const kind of ['golden','wildclaw']){
+      if(!characterModelLoads.has(kind))characterModelLoads.set(kind,loadPlayerModel(characterModelFiles[kind],kind));
+      loading.push(characterModelLoads.get(kind));
+    }
     const helmet='assets/helmeted-red-dawn.glb';
     if(!helmetModelLoads.has(helmet))helmetModelLoads.set(helmet,loadPlayerModel(helmet,'helmeted'));
+    loading.push(helmetModelLoads.get(helmet));
+    // Once the optional models have finished attempting to load, never stall the
+    // frozen finale: the existing procedural actors remain visible as stand-ins.
+    Promise.allSettled(loading).then(()=>{frostCastLoadsSettled=true;});
   }
   window.frostFinaleActorsReady=f=>{
     const ids=[f.guardianId||f.redDawn?.id,f.wildClaw?.id];
-    return ids.every(id=>{const u=rigs.get(id)?.userData;return !!u?.glbRig&&!!u.glbModel&&(!u.source?.helmet||!!u.helmetedRig);});
+    if(ids.every(id=>{const u=rigs.get(id)?.userData;return !!u?.glbRig&&!!u.glbModel&&(!u.source?.helmet||!!u.helmetedRig);}))return true;
+    return frostCastPreloaded&&frostCastLoadsSettled;
   };
   const skinGeometryCache = new Map();
   const villainModelUrls = { hammerer: 'assets/fantasy-creature.glb' };
