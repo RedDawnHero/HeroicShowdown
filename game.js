@@ -635,12 +635,12 @@
       const existing=Object.values(state.players).find(p=>p.hero==='guardian');
       const hero=existing||{...state.players.host,id:'red-dawn-cinematic',name:'Red Dawn',hero:'guardian',hp:100,color:'#ffc857'};
       if(existing)state.finale.guardianId=existing.id;else state.finale.redDawn=hero;
-      hero.x=state.bossX-22;hero.y=state.bossY+26;window.heroIceTerrain?.snap(hero);
+      hero.x=state.bossX-22;hero.y=state.bossY+26;window.heroIceTerrain?.snap?.(hero);
       hero.moveSpeed=0;hero.fx=0;hero.fy=0;hero.action='';hero.actionTime=0;hero.weaponHeld=false;
       hero.face=Math.atan2(state.bossX-hero.x,hero.y-state.bossY);hero.portalEntered=false;
       state.finale.guardianBackup={...hero};state.finale.heroImpact=false;
       state.finale.wildClaw={...hero,id:'wild-claw-cinematic',name:'Wild Claw',hero:'wildclaw',helmet:false,x:hero.x+55,y:hero.y+15};
-      window.heroIceTerrain?.snap(state.finale.wildClaw);
+      window.heroIceTerrain?.snap?.(state.finale.wildClaw);
       state.boss=1;state.bossBlock=0;state.bossAttack=0;state.bossWalking=false;
     }
     arenaTarget=null;say(state.round===2?'RED DAWN STEPS FORWARD TO FINISH MR. MISFIT!':'DARK ARMORED IS DESTABILIZING… ECAL TAKES AIM.');broadcast();
@@ -716,7 +716,7 @@
   let iceState=null,icePlaced=new WeakSet();
   const iceBodies=()=>[...Object.values(state.players),...(state.hammerers||[]).filter(h=>!h.dead),...(state.goons||[]),...(state.caster&&!state.caster.dead?[state.caster]:[]),...(state.civilians||[])];
   function prepareIce(){
-    const terrain=window.heroIceTerrain;if(!terrain)return;
+    const terrain=window.heroIceTerrain;if(!terrain||typeof terrain.snap!=='function'||typeof terrain.world!=='function')return;
     if(iceState!==state){iceState=state;icePlaced=new WeakSet();const boss={x:state.bossX,y:state.bossY};terrain.snap(boss);state.bossX=boss.x;state.bossY=boss.y;}
     const occupied=[];
     for(const p of iceBodies())if(icePlaced.has(p))occupied.push(terrain.world(p));
@@ -724,21 +724,21 @@
   }
   function iceSnapshot(){prepareIce();return {bodies:iceBodies().map(p=>[p,{x:p.x,y:p.y}]),boss:{x:state.bossX,y:state.bossY}};}
   function resolveIce(before){
-    if(!before||state?.phase!=='game'||state.round!==2)return;
+    if(!before||state?.phase!=='game'||state.round!==2||typeof window.heroIceTerrain?.resolve!=='function')return;
     for(const [p,old] of before.bodies)window.heroIceTerrain.resolve(p,old);
     const boss={x:state.bossX,y:state.bossY};window.heroIceTerrain.resolve(boss,before.boss);state.bossX=boss.x;state.bossY=boss.y;
     prepareIce();
   }
   act=function(p,kind){
     if(state?.round===2&&window.heroIceLandscapeStatus&&window.heroIceLandscapeStatus!=='ready')return;
-    const before=state?.round===2&&window.heroIceTerrain?iceSnapshot():null;
+    const before=state?.round===2&&typeof window.heroIceTerrain?.snap==='function'&&typeof window.heroIceTerrain?.resolve==='function'?iceSnapshot():null;
     actBeforeIce(p,kind);resolveIce(before);
   };
   simulate=function(dt){
     const ice=state?.phase==='game'&&state.round===2&&window.heroIceTerrain;
     if(!ice)iceState=null;
     if(ice&&window.loadFrozenLandscape){window.loadFrozenLandscape();if(window.heroIceLandscapeStatus!=='ready')return;}
-    const before=ice?iceSnapshot():null;
+    const before=ice&&typeof ice.snap==='function'&&typeof ice.resolve==='function'?iceSnapshot():null;
     simulateBeforeIce(dt);resolveIce(before);
     if(state?.phase==='game'&&state.round===2&&window.heroIceTerrain)prepareIce();
   };
