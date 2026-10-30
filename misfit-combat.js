@@ -25,7 +25,7 @@
     s.bossWalking=d>78;
     if(s.bossWalking){
       let vx=dx/d,vy=dy/d;
-      if(s.round===2&&window.heroIceTerrain){
+      if(s.round===2&&typeof window.heroIceTerrain?.direction==='function'){
         s.misfitRouteTime-=dt;
         if(!s.misfitRouteGoal||s.misfitRouteTime<=0){s.misfitRouteGoal={x:target.x,y:target.y};s.misfitRouteTime=.65;}
         const heading=window.heroIceTerrain.direction({id:'mr-misfit-boss',x:s.bossX,y:s.bossY},s.misfitRouteGoal);
