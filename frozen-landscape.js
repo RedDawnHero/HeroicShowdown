@@ -2,7 +2,32 @@
 (() => {
   const originalData=window.heroFrozenCollision;
   const data=originalData?{...originalData}:null;
-  if(!data)return;
+  if(!data){
+    // Public releases may not include the original frozen collision-data pack.
+    // Show the already-built snowy city instead of skipping Level 2 scenery.
+    window.heroFrozenWorldFallback=true;
+    window.createFrozenLandscape=(T,scene)=>{
+      const street=window.createSnowStreet?.(T);
+      if(!street)return null;
+      const root=new T.Group();root.name='Play-ready frozen city preview';
+      root.visible=false;root.add(street.group);street.group.visible=true;
+      // Extend the walking surface for movement and dodges outside the center avenue.
+      const snow=new T.MeshStandardMaterial({color:0xd7e4ea,roughness:.94});
+      const foundation=new T.Mesh(new T.PlaneGeometry(160,1300),snow);
+      foundation.rotation.x=-Math.PI/2;foundation.position.set(0,-.13,-500);
+      foundation.receiveShadow=true;root.add(foundation);
+      scene.add(root);window.heroIceLandscapeStatus='ready';
+      return {root,update(active,position,t){
+        root.visible=active;if(!active)return;
+        street.group.visible=true;
+        street.update(t,Math.max(.5,window.innerWidth/Math.max(1,window.innerHeight)));
+        scene.background=street.background;
+        scene.fog.color.setHex(0xa0b4c3);
+        scene.fog.near=30;scene.fog.far=125;
+      }};
+    };
+    return;
+  }
   const decode=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
   const tileCount=4,n=data.size,rows=(n-1)*tileCount+1,tileDepth=data.maxZ-data.minZ;
   const originalHeights=new Int16Array(decode(data.heights).buffer),originalWalkable=decode(data.walkable);
