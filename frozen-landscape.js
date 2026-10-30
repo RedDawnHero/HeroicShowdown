@@ -118,9 +118,46 @@
           cache.set(key,height);
           return height;
         };
+        // game.js and misfit-combat.js require the full terrain movement API.
+        // A GLB alone has no authored walkability grid, so use safe, continuous
+        // 2D movement until the separate frozen-collision.js is supplied.
+        const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
+        const bounds={minY:82,maxY:574};
+        const world=person=>({
+          x:((person?.x??500)-500)*.055,
+          z:((person?.y??300)-300)*.055
+        });
+        function place(person){
+          if(!person)return;
+          person.x=clamp(Number.isFinite(person.x)?person.x:500,34,966);
+          person.y=clamp(Number.isFinite(person.y)?person.y:300,bounds.minY,bounds.maxY);
+          const where=world(person);
+          person.groundY=groundAt(where.x,where.z);
+        }
+        function snap(person,occupied=[]){
+          place(person);
+          if(Array.isArray(occupied)&&person)occupied.push(world(person));
+        }
+        function resolve(person,previous){
+          // Never throw or freeze the player if the source mesh has no usable
+          // raycast intersection at a particular spot.
+          place(person);
+        }
+        function direction(person,target){
+          const dx=(target?.x??person.x)-person.x;
+          const dy=(target?.y??person.y)-person.y;
+          const distance=Math.hypot(dx,dy);
+          if(!Number.isFinite(distance)||distance<9)return {x:0,y:0,done:true};
+          return {x:dx/distance,y:dy/distance,done:false};
+        }
+        function nearest(x,z){
+          return {x:clamp(x,-25.63,25.63),z:clamp(z,-11.99,15.07)};
+        }
         window.heroIceTerrain={
           height:groundAt,
-          source:'frozen-landscape.glb triangle raycasts'
+          open:(x,z)=>Number.isFinite(x)&&Number.isFinite(z),
+          nearest,snap,resolve,world,direction,bounds,
+          source:'frozen-landscape.glb triangle raycasts with safe movement'
         };
         // A missing surface at one spawn must not make an entire, correctly
         // loaded Frozen City unplayable. Inspect playable points and report.
