@@ -66,122 +66,161 @@
       // ground directly from the loaded, *visible* GLB triangles rather than
       // rejecting the scene when its vertices miss a hard-coded sampling grid.
       function buildVisibleGroundHeights(model,finished){
+        // The original 256x256 collision pack is not in this GitHub Pages build.
+        // Read the TOP VISIBLE ice surface once on the GPU rather than raycasting
+        // a ~1.9 million triangle model for every character on every frame.
         model.updateMatrixWorld(true);
         const extent=new T.Box3().setFromObject(model);
-        const floorObjects=[];
-        model.traverse(mesh=>{
-          if(!mesh.isMesh||!mesh.geometry?.getAttribute('position'))return;
-          mesh.geometry.computeBoundingBox();
-          floorObjects.push({mesh,bounds:new T.Box3().setFromObject(mesh)});
-        });
-        const raycaster=new T.Raycaster();
-        raycaster.ray.direction.set(0,-1,0);
-        raycaster.far=Math.max(200,extent.max.y-extent.min.y+40);
-        const originY=Math.max(150,extent.max.y+10);
-        const cache=new Map(),up=new T.Vector3(),normalMatrix=new T.Matrix3();
-        let successful=0;
-        const groundAt=(x,z)=>{
-          if(!Number.isFinite(x)||!Number.isFinite(z))return 0;
-          const cellX=Math.round(x*2)/2,cellZ=Math.round(z*2)/2;
-          const key=cellX+','+cellZ;
-          if(cache.has(key))return cache.get(key);
-          raycaster.ray.origin.set(cellX,originY,cellZ);
-          let best=null,quality=Infinity;
-          for(const entry of floorObjects){
-            const bb=entry.bounds;
-            if(cellX<bb.min.x||cellX>bb.max.x||cellZ<bb.min.z||cellZ>bb.max.z)continue;
-            const mesh=entry.mesh;
-            // Some imported terrain surfaces have reversed normals. Both
-            // sides must be tested without permanently altering its visuals.
-            const materials=Array.isArray(mesh.material)?mesh.material:[mesh.material];
-            const previous=materials.map(m=>m?.side);
-            for(const material of materials)if(material)material.side=T.DoubleSide;
-            let intersections=[];
-            try{intersections=raycaster.intersectObject(mesh,false);}
-            finally{materials.forEach((m,i)=>{if(m)m.side=previous[i];});}
-            for(const hit of intersections){
-              if(hit.face){
-                normalMatrix.getNormalMatrix(hit.object.matrixWorld);
-                up.copy(hit.face.normal).applyMatrix3(normalMatrix).normalize();
-                if(Math.abs(up.y)<.28)continue;
-              }
-              const h=hit.point.y;
-              // Prefer the usable ground near the gameplay plane over roofs
-              // and cave ceilings at the same X/Z coordinate.
-              const score=Math.abs(h)+(h< -20||h>80?1000:0);
-              if(score<quality){quality=score;best=h;}
-            }
+        const mid=extent.getCenter(new T.Vector3());
+        const width=Math.max(.1,extent.max.x-extent.min.x);
+        const depth=Math.max(.1,extent.max.z-extent.min.z);
+        const minY=extent.min.y,spanY=Math.max(1,extent.max.y-minY);
+        const pixelsPerSide=384;
+        let pixels=null,good=0;
+        if(renderer){
+          const target=new T.WebGLRenderTarget(pixelsPerSide,pixelsPerSide,{
+            format:T.RGBAFormat,type:T.UnsignedByteType,depthBuffer:true,
+            stencilBuffer:false,minFilter:T.NearestFilter,magFilter:T.NearestFilter
+          });
+          const material=new T.ShaderMaterial({
+            uniforms:{terrainLow:{value:minY},terrainSpan:{value:spanY}},
+            side:T.DoubleSide,depthTest:true,depthWrite:true,toneMapped:false,
+            vertexShader: String.raw`
+              varying float vHeight;
+              void main(){
+                vec4 worldPosition=modelMatrix*vec4(position,1.0);
+                vHeight=worldPosition.y;
+                gl_Position=projectionMatrix*viewMatrix*worldPosition;
+              }`,
+            fragmentShader: String.raw`
+              uniform float terrainLow;uniform float terrainSpan;varying float vHeight;
+              void main(){
+                float value=clamp((vHeight-terrainLow)/terrainSpan,0.0,1.0);
+                float number=floor(value*65534.0+0.5);
+                gl_FragColor=vec4(floor(number/256.0)/255.0,mod(number,256.0)/255.0,0.0,1.0);
+              }`
+          });
+          const top=new T.OrthographicCamera(-width/2,width/2,depth/2,-depth/2,.1,spanY+35);
+          top.up.set(0,0,-1);
+          top.position.set(mid.x,extent.max.y+12,mid.z);
+          top.lookAt(mid.x,mid.y,mid.z);
+          top.updateProjectionMatrix();
+          const previousParent=model.parent,previousTarget=renderer.getRenderTarget();
+          const oldColor=renderer.getClearColor(new T.Color()).clone();
+          const oldAlpha=renderer.getClearAlpha(),oldShadow=renderer.shadowMap.enabled;
+          const oldScissor=renderer.getScissorTest();
+          const oldAuto=renderer.autoClear;
+          try{
+            const stage=new T.Scene();
+            stage.overrideMaterial=material;
+            stage.add(model);
+            model.updateMatrixWorld(true);
+            renderer.shadowMap.enabled=false;
+            renderer.autoClear=true;
+            renderer.setScissorTest(false);
+            renderer.setRenderTarget(target);
+            renderer.setClearColor(0x000000,0);
+            renderer.clear(true,true,true);
+            renderer.render(stage,top);
+            const bytes=new Uint8Array(pixelsPerSide*pixelsPerSide*4);
+            renderer.readRenderTargetPixels(target,0,0,pixelsPerSide,pixelsPerSide,bytes);
+            for(let i=3;i<bytes.length;i+=4)if(bytes[i]>0)good++;
+            if(good>24)pixels=bytes;
+          }catch(error){
+            console.warn('Frozen City GPU ground sampling unavailable; using cached surface probes',error);
+          }finally{
+            if(previousParent)previousParent.add(model);
+            model.updateMatrixWorld(true);
+            renderer.setRenderTarget(previousTarget);
+            renderer.setClearColor(oldColor,oldAlpha);
+            renderer.setScissorTest(oldScissor);
+            renderer.shadowMap.enabled=oldShadow;
+            renderer.autoClear=oldAuto;
+            target.dispose();material.dispose();
           }
-          const height=Number.isFinite(best)?best+.10:0;
-          if(best!==null)successful++;
-          if(cache.size>7000)cache.clear();
-          cache.set(key,height);
-          return height;
+        }
+        // Only used when the GPU map cannot be read.
+        let fallbackMeshes=null;
+        const slowCache=new Map(),raycaster=new T.Raycaster();
+        raycaster.ray.direction.set(0,-1,0);
+        raycaster.far=spanY+35;
+        const rayOrigin=extent.max.y+12;
+        const normalMatrix=new T.Matrix3(),normal=new T.Vector3();
+        const probe=(x,z)=>{
+          const key=Math.round(x)+','+Math.round(z);
+          if(slowCache.has(key))return slowCache.get(key);
+          if(!fallbackMeshes){
+            fallbackMeshes=[];
+            model.traverse(mesh=>{
+              if(mesh.isMesh&&mesh.geometry?.getAttribute('position'))
+                fallbackMeshes.push({mesh,bounds:new T.Box3().setFromObject(mesh)});
+            });
+          }
+          raycaster.ray.origin.set(x,rayOrigin,z);
+          let highest=null;
+          for(const {mesh,bounds} of fallbackMeshes){
+            if(x<bounds.min.x||x>bounds.max.x||z<bounds.min.z||z>bounds.max.z)continue;
+            const mats=Array.isArray(mesh.material)?mesh.material:[mesh.material];
+            const sides=mats.map(m=>m?.side);
+            try{
+              mats.forEach(m=>{if(m)m.side=T.DoubleSide;});
+              for(const hit of raycaster.intersectObject(mesh,false)){
+                if(hit.face){
+                  normalMatrix.getNormalMatrix(hit.object.matrixWorld);
+                  normal.copy(hit.face.normal).applyMatrix3(normalMatrix).normalize();
+                  if(Math.abs(normal.y)<.22)continue;
+                }
+                if(highest===null||hit.point.y>highest)highest=hit.point.y;
+              }
+            }finally{mats.forEach((m,i)=>{if(m)m.side=sides[i];});}
+          }
+          const result=highest===null?0:highest+.22;
+          if(slowCache.size>=1200)slowCache.clear();
+          slowCache.set(key,result);
+          return result;
         };
-        // game.js and misfit-combat.js require the full terrain movement API.
-        // A GLB alone has no authored walkability grid, so use safe, continuous
-        // 2D movement until the separate frozen-collision.js is supplied.
+        function heightAt(x,z){
+          if(!Number.isFinite(x)||!Number.isFinite(z))return 0;
+          if(!pixels)return probe(Math.round(x),Math.round(z));
+          const xx=Math.max(0,Math.min(pixelsPerSide-1,Math.round((x-extent.min.x)/width*(pixelsPerSide-1))));
+          // readRenderTargetPixels returns rows from the BOTTOM (positive Z).
+          const yy=Math.max(0,Math.min(pixelsPerSide-1,Math.round((extent.max.z-z)/depth*(pixelsPerSide-1))));
+          const index=(yy*pixelsPerSide+xx)*4;
+          if(pixels[index+3]<128)return 0;
+          const encoded=pixels[index]*256+pixels[index+1];
+          return minY+spanY*(encoded/65534)+.24;
+        }
         const clamp=(value,min,max)=>Math.max(min,Math.min(max,value));
         const bounds={minY:82,maxY:574};
-        const world=person=>({
-          x:((person?.x??500)-500)*.055,
-          z:((person?.y??300)-300)*.055
-        });
-        function place(person){
-          if(!person)return;
-          person.x=clamp(Number.isFinite(person.x)?person.x:500,34,966);
-          person.y=clamp(Number.isFinite(person.y)?person.y:300,bounds.minY,bounds.maxY);
-          const where=world(person);
-          person.groundY=groundAt(where.x,where.z);
+        const world=p=>({x:((p?.x??500)-500)*.055,z:((p?.y??300)-300)*.055});
+        function place(p){
+          if(!p)return;
+          p.x=clamp(Number.isFinite(p.x)?p.x:500,34,966);
+          p.y=clamp(Number.isFinite(p.y)?p.y:300,bounds.minY,bounds.maxY);
+          const location=world(p);
+          p.groundY=heightAt(location.x,location.z);
         }
-        function snap(person,occupied=[]){
-          place(person);
-          if(Array.isArray(occupied)&&person)occupied.push(world(person));
+        function snap(p,occupied=[]){
+          place(p);
+          if(p&&Array.isArray(occupied))occupied.push(world(p));
         }
-        function resolve(person,previous){
-          // Never throw or freeze the player if the source mesh has no usable
-          // raycast intersection at a particular spot.
-          place(person);
-        }
-        function direction(person,target){
-          const dx=(target?.x??person.x)-person.x;
-          const dy=(target?.y??person.y)-person.y;
+        function resolve(p){place(p);}
+        function direction(p,target){
+          const dx=(target?.x??p.x)-p.x,dy=(target?.y??p.y)-p.y;
           const distance=Math.hypot(dx,dy);
-          if(!Number.isFinite(distance)||distance<9)return {x:0,y:0,done:true};
-          return {x:dx/distance,y:dy/distance,done:false};
-        }
-        function nearest(x,z){
-          return {x:clamp(x,-25.63,25.63),z:clamp(z,-11.99,15.07)};
+          return !Number.isFinite(distance)||distance<9
+            ?{x:0,y:0,done:true}:{x:dx/distance,y:dy/distance,done:false};
         }
         window.heroIceTerrain={
-          height:groundAt,
+          height:heightAt,
           open:(x,z)=>Number.isFinite(x)&&Number.isFinite(z),
-          nearest,snap,resolve,world,direction,bounds,
-          source:'frozen-landscape.glb triangle raycasts with safe movement'
+          nearest:(x,z)=>({x:clamp(x,extent.min.x,extent.max.x),z:clamp(z,extent.min.z,extent.max.z)}),
+          snap,resolve,world,direction,bounds,
+          source:pixels?'original Frozen City GPU top-surface collision':'cached model raycast top-surface'
         };
-        // A missing surface at one spawn must not make an entire, correctly
-        // loaded Frozen City unplayable. Inspect playable points and report.
-        const probes=[[11,-1],[0,0],[10,-10],[-8,-2],[0,-20],[15,-20]];
-        let index=0;
-        const check=()=>{
-          if(index<probes.length){
-            const [x,z]=probes[index++];
-            groundAt(x,z);
-            showStatus('Checking actual ice surface · '+Math.round(index*100/probes.length)+'%');
-            requestAnimationFrame(check);
-          }else{
-            console.info('Frozen City GLB terrain bounds:',extent.min,extent.max,
-              'meshes:',floorObjects.length,'ground samples:',successful);
-            if(!successful){
-              console.warn('Frozen City terrain is not under the tested spawn positions; fallback ground remains available.');
-              showStatus('Original Frozen City loaded; ground alignment unverified');
-            }else{
-              showStatus('Original Frozen City ground alignment ready');
-            }
-            finished(true);
-          }
-        };
-        requestAnimationFrame(check);
+        console.info('Frozen City ground map:',{source:window.heroIceTerrain.source,validPixels:good,worldBounds:extent});
+        showStatus(pixels?'Original Frozen City ice surface mapped':'Original Frozen City · using sampled ice surface');
+        finished(true);
       }
       function beginModelLoad(){
         if(requested||window.heroFrozenCityModelStatus==='error'||window.heroFrozenCityModelStatus==='preview')return;
