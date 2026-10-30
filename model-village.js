@@ -58,7 +58,7 @@
     if(waterMap){waterMap.wrapS=waterMap.wrapT=T.RepeatWrapping;waterMap.needsUpdate=true;riverMaterial.uniforms.waterMap.value=waterMap;riverMaterial.uniforms.hasWaterMap.value=1;}
     water=riverSurface;
     ready=true;status.style.display='none';
-  }).catch(e=>{failed=true;if(!ready)fallback();ready=true;status.textContent='Using lightweight terrain · reload to retry the model';console.error(e);});}
+  }).catch(e=>{failed=true;if(!ready)fallback();ready=true;status.textContent=ready?'Village loaded · optional water is unavailable':'Village preview · original 3D terrain needs uploading';console.error(e);});}
   // Flat water extends beyond the fog horizon in every direction.
   // Animate world-space flow rather than moving tiles, so the river never resets visibly.
   const riverGeometry=new T.PlaneGeometry(4000,4000,1,1);
@@ -140,10 +140,23 @@
 
   data.clues.forEach(([x,y,z],i)=>{const room=new T.Group();room.position.set(x,y,z);root.add(room);for(const [w,h,depth,rx,ry,rz] of [[3,.12,3,0,-.06,0],[.12,2.8,3,-1.5,1.4,0],[.12,2.8,3,1.5,1.4,0],[3,2.8,.12,0,1.4,-1.5],[3.2,.12,3.2,0,2.85,0]]){const wall=new T.Mesh(new T.BoxGeometry(w,h,depth),timber);wall.position.set(rx,ry,rz);room.add(wall);}const photo=new T.Mesh(new T.PlaneGeometry(.9,.55),new T.MeshBasicMaterial({map:window.homePhotoTexture(T,i),side:T.DoubleSide}));photo.rotation.x=-Math.PI/2;photo.position.set(x,y+.025,z);root.add(photo);cluePlaceholders[i]=photo;const ring=new T.Mesh(new T.TorusGeometry(.8,.045,8,40),new T.MeshBasicMaterial({color:0xffcb70}));ring.rotation.x=-Math.PI/2;ring.position.set(x,y+.1,z);root.add(ring);markers.push(ring);});
   function fallback(){
-    const positions=[],indices=[];
-    for(let z=0;z<data.n;z++)for(let x=0;x<data.n;x++)positions.push(data.min+x*data.step,Math.max(0,data.heights[z*data.n+x]),data.min+z*data.step);
-    for(let z=0;z<data.n-1;z++)for(let x=0;x<data.n-1;x++){const a=z*data.n+x,b=a+1,c=a+data.n,d=c+1;if([a,b,c,d].every(i=>data.heights[i]>-998))indices.push(a,c,b,b,c,d);}
-    const geometry=new T.BufferGeometry();geometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));geometry.setIndex(indices);geometry.computeVertexNormals();root.add(new T.Mesh(geometry,new T.MeshStandardMaterial({color:0x627062,roughness:1,side:T.DoubleSide})));
+    // Missing original village GLB: show walkable low ground without rendering
+    // towering high-altitude cliff walls in front of the third-person camera.
+    const positions=[],indices=[],limit=bridgeY+12;
+    for(let z=0;z<data.n;z++)for(let x=0;x<data.n;x++){
+      const h=data.heights[z*data.n+x];
+      positions.push(data.min+x*data.step,h>-998?h:waterY-3,data.min+z*data.step);
+    }
+    for(let z=0;z<data.n-1;z++)for(let x=0;x<data.n-1;x++){
+      const a=z*data.n+x,b=a+1,c=a+data.n,d=c+1;
+      if([a,b,c,d].every(i=>data.heights[i]>-998&&data.heights[i]<=limit))indices.push(a,c,b,b,c,d);
+    }
+    const geometry=new T.BufferGeometry();
+    geometry.setAttribute('position',new T.Float32BufferAttribute(positions,3));
+    geometry.setIndex(indices);
+    geometry.computeVertexNormals();
+    const ground=new T.MeshStandardMaterial({color:0x877965,roughness:1,side:T.DoubleSide});
+    root.add(new T.Mesh(geometry,ground));
   }
   window.modelVillageCamera=(camera,focus)=>{
     // Keep the lens outside the actor; scenery must not push it into his body.
@@ -158,7 +171,7 @@
     for(let i=8;i<=16;i++){
       const f=i/16,x=focus.x+delta.x*f,z=focus.z+delta.z*f;
       const h=window.modelVillageHeight(x,z);
-      if(h!==null)delta.y=Math.max(delta.y,(h+.65-focus.y)/f);
+      if(h!==null)delta.y=Math.max(delta.y,((failed?Math.min(h,bridgeY+12):h)+.65-focus.y)/f);
     }
     camera.position.copy(focus).add(delta);
   };
