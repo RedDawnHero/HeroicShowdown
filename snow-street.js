@@ -65,9 +65,21 @@ window.createSnowStreet = function (THREE) {
   for (let i = 0; i < count; i++) particles.push({x: (rand() - .5) * 65, z: rand() * 85 - 59, y: rand() * 24, speed: .6 + rand() * 1.2});
   const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   const flakes = new THREE.Points(geometry, new THREE.PointsMaterial({map: flakeMap, color: 0xe7f2ff, size: .11, transparent: true, opacity: .78, depthWrite: false})); flakes.frustumCulled = false; group.add(flakes);
-  // The supplied picture remains the distant cinematic background.
-  let backdrop = new THREE.Color(0x899eae);
-  new THREE.TextureLoader().load('assets/level-two-future-snow.jpg', loaded => { loaded.colorSpace = THREE.SRGBColorSpace; backdrop = loaded; });
+  // Built-in stormy sky avoids an unavailable external Level 2 JPEG.
+  const skyCanvas=document.createElement('canvas');skyCanvas.width=1024;skyCanvas.height=512;
+  const skyContext=skyCanvas.getContext('2d'),gradient=skyContext.createLinearGradient(0,0,0,512);
+  gradient.addColorStop(0,'#526b7e');gradient.addColorStop(.45,'#8399a7');
+  gradient.addColorStop(1,'#d8e2e6');skyContext.fillStyle=gradient;
+  skyContext.fillRect(0,0,1024,512);
+  for(let i=0;i<42;i++){
+    const x=rand()*1024,y=rand()*460,r=35+rand()*150;
+    const fog=skyContext.createRadialGradient(x,y,0,x,y,r);
+    fog.addColorStop(0,'rgba(227,239,245,.16)');
+    fog.addColorStop(1,'rgba(227,239,245,0)');
+    skyContext.fillStyle=fog;skyContext.fillRect(x-r,y-r,r*2,r*2);
+  }
+  const backdrop=new THREE.CanvasTexture(skyCanvas);
+  backdrop.colorSpace=THREE.SRGBColorSpace;
   return {group, get background() { return backdrop; }, update(t, aspect) {
     if (backdrop.isTexture && backdrop.image) {
       const imageAspect = backdrop.image.width / backdrop.image.height;
