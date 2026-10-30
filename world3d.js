@@ -1601,6 +1601,25 @@
         }:{x:local.x,y:local.y};
       };
       for(const [key,rig] of rigs){const p=rig.userData.source;if(!p)continue;const pos=new THREE.Vector3(((p.x??700)-500)*.055,0,((p.y??285)-300)*.055);pos.y=state.round===3&&Number.isFinite(p.villageHeight)?p.villageHeight:groundHeight(pos.x,pos.z);const air=(state.round!==3&&p.jump>0?Math.sin(THREE.MathUtils.clamp((.76-p.jump)/.76,0,1)*Math.PI)*1.15:0)+(p.flying?(p.flightHeight||4.5):0)+(p.climbing?Math.min(110,p.climbHeight||0)*.045:0);footContact?.place(rig,pos,air);
+        if(state.round===3){
+          // Village physics updates at 30 Hz but WebGL renders between physics
+          // ticks. Smooth only the rendered position, never the collision state.
+          const target=rig.position.clone(),view=rig.userData.villageViewPosition;
+          const changedLevel=rig.userData.villageViewLevel!==3;
+          if(!view||changedLevel||view.distanceToSquared(target)>36){
+            rig.userData.villageViewPosition=target.clone();
+          }else{
+            // Use a slightly faster response in the air so jumping stays crisp.
+            const rate=p.villageAirborne?20:17;
+            view.lerp(target,1-Math.exp(-Math.max(.001,dt)*rate));
+            rig.position.copy(view);
+          }
+          rig.userData.villageViewLevel=3;
+          rig.updateMatrixWorld(true);
+        }else{
+          rig.userData.villageViewPosition=null;
+          rig.userData.villageViewLevel=state.round;
+        }
         const anchor=window.heroGround.sample(state.round,p.x??700,p.y??285,details.width,details.height);
         if(anchor.visible){window.heroGround.bolts(detailContext,p,state.round,details.width,details.height);if(p.hero==='ecal'&&!rig.userData.glbModel&&!firstPerson)window.drawEcalCharacter?.(detailContext,p,anchor.x,anchor.y,anchor.height*window.heroCharacterSize(p),t);}
       }
