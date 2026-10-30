@@ -138,7 +138,40 @@
   data.clues.forEach(([x,y,z])=>addVillageLamp(x-1.25,y+2.05,z+1.3,true));
   for(const x of [-8,-3,3,8])addVillageLamp(x,bridgeY+1.35,bridgeZ+1.52,false);
 
-  data.clues.forEach(([x,y,z],i)=>{const room=new T.Group();room.position.set(x,y,z);root.add(room);for(const [w,h,depth,rx,ry,rz] of [[3,.12,3,0,-.06,0],[.12,2.8,3,-1.5,1.4,0],[.12,2.8,3,1.5,1.4,0],[3,2.8,.12,0,1.4,-1.5],[3.2,.12,3.2,0,2.85,0]]){const wall=new T.Mesh(new T.BoxGeometry(w,h,depth),timber);wall.position.set(rx,ry,rz);room.add(wall);}const photo=new T.Mesh(new T.PlaneGeometry(.9,.55),new T.MeshBasicMaterial({map:window.homePhotoTexture(T,i),side:T.DoubleSide}));photo.rotation.x=-Math.PI/2;photo.position.set(x,y+.025,z);root.add(photo);cluePlaceholders[i]=photo;const ring=new T.Mesh(new T.TorusGeometry(.8,.045,8,40),new T.MeshBasicMaterial({color:0xffcb70}));ring.rotation.x=-Math.PI/2;ring.position.set(x,y+.1,z);root.add(ring);markers.push(ring);});
+  // Solid timber clue cabins replace the open test boxes. The evidence and
+  // glowing collection rings remain at exactly the same locations.
+  const siding=new T.MeshStandardMaterial({color:0x947454,roughness:.94});
+  const roofMat=new T.MeshStandardMaterial({color:0x473a32,roughness:.93});
+  const cabinTrim=new T.MeshStandardMaterial({color:0x45372d,roughness:.88});
+  function cabinPanel(parent,w,h,d,x,y,z,material=siding,tilt=0){
+    const part=new T.Mesh(new T.BoxGeometry(w,h,d),material);
+    part.position.set(x,y,z);part.rotation.z=tilt;
+    part.receiveShadow=true;part.castShadow=true;parent.add(part);
+    return part;
+  }
+  data.clues.forEach(([x,y,z],i)=>{
+    const room=new T.Group();room.position.set(x,y,z);root.add(room);
+    // Open doorway faces the visitor. The side walls match the glowing windows.
+    cabinPanel(room,3.25,.16,3.35,0,-.08,0);
+    for(const side of [-1,1]){
+      cabinPanel(room,.17,2.8,3.3,side*1.6,1.4,0);
+      cabinPanel(room,.17,2.7,.17,side*1.62,1.35,1.65,cabinTrim);
+      cabinPanel(room,.78,2.24,.17,side*1.23,1.12,1.65);
+      for(const height of [.35,2.45])cabinPanel(room,.13,.13,3.35,side*1.61,height,0,cabinTrim);
+    }
+    cabinPanel(room,3.35,2.8,.18,0,1.4,-1.65);
+    cabinPanel(room,1.6,.55,.18,0,2.52,1.65);
+    cabinPanel(room,1.6,.14,.2,0,2.28,1.68,cabinTrim);
+    cabinPanel(room,3.45,.17,.18,0,2.82,-1.68,cabinTrim);
+    // A pitched roof makes the cabins look like buildings rather than boxes.
+    cabinPanel(room,2.02,.18,3.85,-.88,3.17,0,roofMat,.46);
+    cabinPanel(room,2.02,.18,3.85,.88,3.17,0,roofMat,-.46);
+    cabinPanel(room,.15,.16,3.9,0,3.62,0,cabinTrim);
+    const photo=new T.Mesh(new T.PlaneGeometry(.9,.55),new T.MeshBasicMaterial({map:window.homePhotoTexture(T,i),side:T.DoubleSide}));
+    photo.rotation.x=-Math.PI/2;photo.position.set(x,y+.025,z);root.add(photo);cluePlaceholders[i]=photo;
+    const ring=new T.Mesh(new T.TorusGeometry(.8,.045,8,40),new T.MeshBasicMaterial({color:0xffcb70}));
+    ring.rotation.x=-Math.PI/2;ring.position.set(x,y+.1,z);root.add(ring);markers.push(ring);
+  });
   function fallback(){
     // Missing original village GLB: show walkable low ground without rendering
     // towering high-altitude cliff walls in front of the third-person camera.
