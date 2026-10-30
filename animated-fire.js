@@ -1,7 +1,31 @@
 /* Grounded photographic flames, with separate rising smoke and embers. */
 (() => {
   const image = new Image();
-  image.src = window.heroFireImage || 'assets/realistic-fire.png';
+  // The optional photo pack is not deployed in every build. Draw local layered
+  // flames instead of requesting a missing PNG and leaving the fire invisible.
+  function proceduralFire() {
+    const canvas=document.createElement('canvas');canvas.width=256;canvas.height=320;
+    const g=canvas.getContext('2d');
+    const layers=[
+      {cx:128,rx:113,top:15,base:313,inner:'#ffba53',outer:'rgba(255,57,8,0)'},
+      {cx:122,rx:80,top:60,base:310,inner:'#ffdf89',outer:'rgba(255,100,15,0)'},
+      {cx:132,rx:51,top:125,base:314,inner:'#fff7bd',outer:'rgba(255,181,47,0)'}
+    ];
+    for(const layer of layers){
+      const grad=g.createRadialGradient(layer.cx,layer.base-56,4,layer.cx,layer.base-90,layer.rx*1.7);
+      grad.addColorStop(0,layer.inner);grad.addColorStop(.45,'#ff7927');grad.addColorStop(1,layer.outer);
+      g.fillStyle=grad;g.beginPath();g.moveTo(layer.cx-layer.rx,layer.base);
+      g.bezierCurveTo(layer.cx-layer.rx*1.15,layer.base-95,layer.cx-layer.rx*.37,layer.top+108,layer.cx-20,layer.top);
+      g.bezierCurveTo(layer.cx+layer.rx*.07,layer.top+75,layer.cx+layer.rx*.72,layer.base-140,layer.cx+layer.rx,layer.base);
+      g.closePath();g.fill();
+    }
+    const glow=g.createRadialGradient(128,291,2,128,291,108);
+    glow.addColorStop(0,'rgba(255,246,181,.96)');glow.addColorStop(.26,'rgba(255,153,26,.76)');glow.addColorStop(1,'rgba(255,66,9,0)');
+    g.fillStyle=glow;g.fillRect(0,172,256,148);
+    return canvas.toDataURL('image/png');
+  }
+  image.onerror=()=>{image.onerror=null;image.src=proceduralFire();};
+  image.src=window.heroFireImage || proceduralFire();
   const fract = n => n - Math.floor(n);
   const random = n => fract(Math.sin(n * 127.1 + 311.7) * 43758.5453);
   const smokeCanvas = document.createElement('canvas');
