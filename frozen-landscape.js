@@ -29,13 +29,41 @@
       loadingLabel.textContent='Frozen City 3D model · preparing';
       loadingLabel.hidden=true;
       document.querySelector('.arena-wrap')?.appendChild(loadingLabel);
-      const showStatus=(text)=>{loadingLabel.textContent=text;};
+      const loadScreen=document.createElement('div');
+      loadScreen.className='frozen-city-loading-screen';
+      loadScreen.style.cssText='position:absolute;inset:0;z-index:36;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:#081727ed;color:#f2f9ff;text-align:center;padding:24px;font:600 18px system-ui,sans-serif';
+      const loadTitle=document.createElement('div');
+      loadTitle.style.cssText='font-size:clamp(20px,3vw,30px);font-weight:800;color:#e6f8ff';
+      loadTitle.textContent='PREPARING FROZEN CITY';
+      const loadDetails=document.createElement('div');
+      loadDetails.style.cssText='font-size:15px;font-weight:500;color:#c5e0ee';
+      loadDetails.textContent='Loading your original 3D environment…';
+      const loadActions=document.createElement('div');
+      loadActions.style.cssText='display:flex;flex-wrap:wrap;gap:10px;justify-content:center';
+      const retryButton=document.createElement('button');
+      retryButton.type='button';retryButton.textContent='RETRY ORIGINAL CITY';
+      const previewButton=document.createElement('button');
+      previewButton.type='button';previewButton.textContent='PLAY WITH SNOW PREVIEW';
+      for(const b of [retryButton,previewButton]){
+        b.style.cssText='padding:12px 16px;border:1px solid #9bcadd;background:#18384d;color:white;border-radius:6px;font:700 13px system-ui,sans-serif;cursor:pointer';
+        loadActions.append(b);
+      }
+      loadScreen.append(loadTitle,loadDetails,loadActions);
+      document.querySelector('.arena-wrap')?.appendChild(loadScreen);
+      const showStatus=(message)=>{loadingLabel.textContent=message;loadDetails.textContent=message;};
+      function updateLoadScreen(active){
+        const status=window.heroFrozenCityModelStatus;
+        const needsLoading=active&&status!=='ready'&&status!=='preview';
+        loadScreen.style.display=needsLoading?'flex':'none';
+        retryButton.hidden=previewButton.hidden=status!=='error';
+        if(needsLoading)loadingLabel.hidden=true;
+      }
 
       let requested=false,cityModel=null;
       window.heroIceLandscapeStatus='ready';
       window.heroFrozenCityModelStatus='preview';
       function beginModelLoad(){
-        if(requested)return;
+        if(requested||window.heroFrozenCityModelStatus==='error'||window.heroFrozenCityModelStatus==='preview')return;
         if(!window.GLTFLoader){
           // The engine loader may not have initialized on the first frame.
           // Leave requested=false so the next active frame retries automatically.
@@ -43,6 +71,7 @@
           return;
         }
         requested=true;
+        window.heroIceLandscapeStatus='loading';
         window.heroFrozenCityModelStatus='loading';
         showStatus('Loading original Frozen City model (66 MB)…');
         new window.GLTFLoader().load(
@@ -80,17 +109,40 @@
             }
           },
           error=>{
-            window.heroFrozenCityModelStatus='preview';
-            showStatus('Frozen City model failed to load · showing preview');
+            window.heroIceLandscapeStatus='error';
+            window.heroFrozenCityModelStatus='error';
+            showStatus('Unable to load the original Frozen City model. Retry, or choose the snow preview.');
             console.warn('Frozen landscape model did not load; using snow-city preview',error);
           }
         );
       }
+      retryButton.onclick=()=>{
+        requested=false;
+        window.heroIceLandscapeStatus='loading';
+        window.heroFrozenCityModelStatus='loading';
+        beginModelLoad();
+      };
+      previewButton.onclick=()=>{
+        window.heroIceLandscapeStatus='ready';
+        window.heroFrozenCityModelStatus='preview';
+      };
+      window.prepareFrozenCity=()=>{
+        if(window.heroFrozenCityModelStatus==='preview'){
+          window.heroFrozenCityModelStatus='loading';
+          window.heroIceLandscapeStatus='loading';
+        }
+        beginModelLoad();
+      };
       return {root,update(active,position,t){
         root.visible=active;
         loadingLabel.hidden=!active||!!cityModel;
-        if(!active)return;
+        if(!active){updateLoadScreen(false);return;}
+        if(window.heroFrozenCityModelStatus==='preview'&&!requested){
+          window.heroFrozenCityModelStatus='loading';
+          window.heroIceLandscapeStatus='loading';
+        }
         beginModelLoad();
+        updateLoadScreen(true);
         if(street){
           street.group.visible=!cityModel;
           street.update(t,Math.max(.5,window.innerWidth/Math.max(1,window.innerHeight)));
