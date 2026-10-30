@@ -1587,7 +1587,18 @@
       [battlefield,industrialArena,futureStreetBase,futureCity,futureResidents,rain,warehouseArena?.group,meteorLevel?.group,snowStreet?.group,...ships].filter(Boolean).forEach(g=>g.visible=false);
       contactFloor.visible=false;camera.updateMatrixWorld(true);detailContext.clearRect(0,0,details.width,details.height);
       window.heroTravelProjection=(x,y,w,h)=>{const wx=(x-500)*.055,wz=(y-300)*.055,v=new THREE.Vector3(wx,groundHeight(wx,wz),wz),a=v.clone().project(camera),b=v.clone().add(new THREE.Vector3(0,2.48,0)).project(camera);return {x:(a.x+1)*w/2,y:(1-a.y)*h/2,height:Math.min(h*.85,Math.max(0,(b.y-a.y)*h/2)),scale:1,depth:0,visible:a.z>-1&&a.z<1};};
-      window.heroTravelUnproject=(x,y,w,h)=>{groundRay.setFromCamera(new THREE.Vector2(x/w*2-1,1-y/h*2),camera);const q=state.round===2?window.heroIceTerrain?.raycast(groundRay.ray):groundRay.ray.intersectPlane(state.round===3?new THREE.Plane(new THREE.Vector3(0,1,0),-groundHeight(px,pz)):groundPlane,new THREE.Vector3());return q?{x:state.round===3?q.x/.055+500:THREE.MathUtils.clamp(q.x/.055+500,34,966),y:state.round===3?q.z/.055+300:THREE.MathUtils.clamp(q.z/.055+300,state.round===2?window.heroIceTerrain.bounds.minY:-18000,state.round===2?window.heroIceTerrain.bounds.maxY:574)}:{x:local.x,y:local.y};};
+      window.heroTravelUnproject=(x,y,w,h)=>{
+        groundRay.setFromCamera(new THREE.Vector2(x/w*2-1,1-y/h*2),camera);
+        const ice=state.round===2?window.heroIceTerrain:null;
+        // On the public build the optional frozen collision bundle can be absent.
+        // Aim against a flat ground plane until the original terrain is restored.
+        const q=ice?.raycast?ice.raycast(groundRay.ray):
+          groundRay.ray.intersectPlane(state.round===3?new THREE.Plane(new THREE.Vector3(0,1,0),-groundHeight(px,pz)):groundPlane,new THREE.Vector3());
+        return q?{
+          x:state.round===3?q.x/.055+500:THREE.MathUtils.clamp(q.x/.055+500,34,966),
+          y:state.round===3?q.z/.055+300:THREE.MathUtils.clamp(q.z/.055+300,ice?.bounds?.minY??-18000,ice?.bounds?.maxY??574)
+        }:{x:local.x,y:local.y};
+      };
       for(const [key,rig] of rigs){const p=rig.userData.source;if(!p)continue;const pos=new THREE.Vector3(((p.x??700)-500)*.055,0,((p.y??285)-300)*.055);pos.y=state.round===3&&Number.isFinite(p.villageHeight)?p.villageHeight:groundHeight(pos.x,pos.z);const air=(state.round!==3&&p.jump>0?Math.sin(THREE.MathUtils.clamp((.76-p.jump)/.76,0,1)*Math.PI)*1.15:0)+(p.flying?(p.flightHeight||4.5):0)+(p.climbing?Math.min(110,p.climbHeight||0)*.045:0);footContact?.place(rig,pos,air);
         const anchor=window.heroGround.sample(state.round,p.x??700,p.y??285,details.width,details.height);
         if(anchor.visible){window.heroGround.bolts(detailContext,p,state.round,details.width,details.height);if(p.hero==='ecal'&&!rig.userData.glbModel&&!firstPerson)window.drawEcalCharacter?.(detailContext,p,anchor.x,anchor.y,anchor.height*window.heroCharacterSize(p),t);}
