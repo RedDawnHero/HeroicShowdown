@@ -1437,7 +1437,7 @@
   }
   new ResizeObserver(resize).observe(wrap); window.addEventListener('resize', resize); resize();
   const footContact = window.createFootContact?.(THREE); const groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0), groundRay=new THREE.Raycaster();
-  const travelWorld=window.createTravelWorld?.(THREE,scene);
+  const travelWorld=window.createTravelWorld?.(THREE,scene,renderer);
   const darkPresentation=window.createDarkBossPresentation?.(THREE,scene);
   const ashenPortal=window.createAshenPortal?.(THREE,scene);
   const finalRealm=null; // The fifth level was removed; keep its model files archived.
@@ -1459,7 +1459,7 @@
     const localKey = data.playerId === 'host' ? 'host' : data.playerId;
     const local = state.players[localKey] || Object.values(state.players)[0];
     if (!local) { renderer.render(scene, camera); return; }
-    if(cameraLevel!==state.round){cameraLevel=state.round;cameraReady=false;}
+    if(cameraLevel!==state.round){cameraLevel=state.round;cameraReady=false;renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,state.round===2?1:1.5));resize();}
     const meteorActive = state.round === 1;
     const snowActive = state.round === 2;
     if(snowActive)preloadFrostCast();
@@ -1470,7 +1470,7 @@
     battlefield.visible = false; industrialArena.visible = !futureWorld && !warehouseActive && !snowActive && !meteorActive; futureStreetBase.visible = futureWorld; futureCity.visible = futureWorld; futureResidents.visible = futureWorld;
     if (warehouseArena) warehouseArena.group.visible = warehouseActive;
     if (meteorLevel) meteorLevel.group.visible = meteorActive;
-    if (snowStreet) snowStreet.group.visible = snowActive;
+    if (snowStreet) snowStreet.group.visible = snowActive && window.heroFrozenCityModelStatus!=='ready';
     futureStreetAccents.forEach(item => { item.visible = futureWorld; });
     ships.forEach(ship => { ship.visible = futureWorld; }); rain.visible = futureWorld;
     cityGlow.visible = futureWorld; magentaGlow.visible = futureWorld;
@@ -1503,7 +1503,7 @@
     }
     if (warehouseActive && !photoScene) warehouseArena?.update(t);
     if (meteorActive && !photoScene) meteorLevel?.update(t, camera.aspect);
-    if (snowActive && !photoScene) snowStreet?.update(t, camera.aspect);
+    if (snowActive && !photoScene && window.heroFrozenCityModelStatus!=='ready') snowStreet?.update(t, camera.aspect);
     clinicRing.material.opacity = .62 + Math.sin(t * 3) * .16; clinicRing.scale.setScalar(1 + Math.sin(t * 2.2) * .045);
     const actors = new Set();
     for (const [id, p] of Object.entries(state.players)) {
