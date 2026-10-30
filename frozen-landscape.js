@@ -3,27 +3,80 @@
   const originalData=window.heroFrozenCollision;
   const data=originalData?{...originalData}:null;
   if(!data){
-    // Public releases may not include the original frozen collision-data pack.
-    // Show the already-built snowy city instead of skipping Level 2 scenery.
+    // The original frozen city GLB can be rendered even when the independent
+    // height-field collision pack was not included in the published website.
+    // Until a real collision map is restored, movement uses the existing
+    // level-two flat-ground fallback rather than claiming terrain collision.
     window.heroFrozenWorldFallback=true;
     window.createFrozenLandscape=(T,scene)=>{
       const street=window.createSnowStreet?.(T);
-      if(!street)return null;
-      const root=new T.Group();root.name='Play-ready frozen city preview';
-      root.visible=false;root.add(street.group);street.group.visible=true;
-      // Extend the walking surface for movement and dodges outside the center avenue.
-      const snow=new T.MeshStandardMaterial({color:0xd7e4ea,roughness:.94});
-      const foundation=new T.Mesh(new T.PlaneGeometry(160,1300),snow);
-      foundation.rotation.x=-Math.PI/2;foundation.position.set(0,-.13,-500);
-      foundation.receiveShadow=true;root.add(foundation);
-      scene.add(root);window.heroIceLandscapeStatus='ready';
+      const root=new T.Group();root.name='Frozen city (model with preview fallback)';
+      root.visible=false;
+      if(street)root.add(street.group);
+      const foundation=new T.Mesh(
+        new T.PlaneGeometry(160,1300),
+        new T.MeshStandardMaterial({color:0xd7e4ea,roughness:.94})
+      );
+      foundation.name='Temporary walkable snow foundation';
+      foundation.rotation.x=-Math.PI/2;
+      foundation.position.set(0,-.13,-500);
+      foundation.receiveShadow=true;
+      root.add(foundation);
+      scene.add(root);
+
+      let requested=false,cityModel=null;
+      window.heroIceLandscapeStatus='preview';
+      function beginModelLoad(){
+        if(requested)return;
+        requested=true;
+        if(!window.GLTFLoader){
+          console.warn('Frozen landscape: GLTF loader unavailable; using snow preview');
+          return;
+        }
+        window.heroIceLandscapeStatus='loading';
+        new window.GLTFLoader().load(
+          'assets/frozen-landscape.glb',
+          gltf=>{
+            const model=gltf?.scene;
+            if(!model){
+              window.heroIceLandscapeStatus='preview';
+              console.warn('Frozen landscape: model has no scene; using snow preview');
+              return;
+            }
+            // These are the documented coordinates of the supplied model.
+            model.scale.setScalar(52);
+            model.position.z=-5;
+            model.traverse(part=>{
+              if(part.isMesh){part.receiveShadow=true;part.castShadow=false;}
+            });
+            root.add(model);
+            cityModel=model;
+            if(street)street.group.visible=false;
+            foundation.visible=false;
+            window.heroIceLandscapeStatus='ready';
+            window.heroFrozenWorldFallback=false;
+            console.info('Original Level 2 frozen landscape model loaded (temporary ground collision)');
+          },
+          undefined,
+          error=>{
+            window.heroIceLandscapeStatus='preview';
+            console.warn('Frozen landscape model did not load; using snow-city preview',error);
+          }
+        );
+      }
       return {root,update(active,position,t){
-        root.visible=active;if(!active)return;
-        street.group.visible=true;
-        street.update(t,Math.max(.5,window.innerWidth/Math.max(1,window.innerHeight)));
-        scene.background=street.background;
+        root.visible=active;
+        if(!active)return;
+        beginModelLoad();
+        if(street){
+          street.group.visible=!cityModel;
+          street.update(t,Math.max(.5,window.innerWidth/Math.max(1,window.innerHeight)));
+          scene.background=street.background;
+        }
+        foundation.visible=!cityModel;
         scene.fog.color.setHex(0xa0b4c3);
-        scene.fog.near=30;scene.fog.far=125;
+        scene.fog.near=cityModel?38:30;
+        scene.fog.far=cityModel?165:125;
       }};
     };
     return;
