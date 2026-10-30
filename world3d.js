@@ -480,7 +480,8 @@
     const url = characterModelFiles[kind];
     if (!url || !modelLoader) return;
     // Hide built-in placeholder rigs for both imported player models while their GLBs load.
-    if ((kind === 'finalcreature' || kind === 'finnew' || kind === 'golden' || kind === 'wildclaw' || kind === 'lizard' || kind === 'ecal' || kind === 'hammerer' || kind === 'ashen' || kind === 'darkwarrior') && root.userData.body) root.userData.body.visible = false;
+    if ((kind === 'finalcreature' || kind === 'finnew' || kind === 'golden' || kind === 'wildclaw' || kind === 'lizard' || kind === 'ecal' || kind === 'hammerer' || kind === 'darkwarrior') && root.userData.body) root.userData.body.visible = false;
+    // Mr. Misfit's detailed model is ~89 MB: show his procedural rig until loading finishes.
     if (!characterModelLoads.has(kind)) {
       characterModelLoads.set(kind, loadPlayerModel(url,kind));
     }
