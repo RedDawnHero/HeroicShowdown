@@ -3,7 +3,31 @@
   window.createVillageWater=(T,root)=>{
     const touch=matchMedia('(pointer:coarse)').matches;
     const uniforms={time:{value:0},fogColor:{value:new T.Color(0x14263c)}};
-    uniforms.skyMap={value:new T.TextureLoader().load(window.villageNightPhotos.sky)};
+    
+const skyFallback = new T.DataTexture(
+  new Uint8Array([50, 80, 110, 255]),
+  1, 1,
+  T.RGBAFormat
+);
+skyFallback.colorSpace = T.SRGBColorSpace;
+skyFallback.needsUpdate = true;
+
+uniforms.skyMap = { value: skyFallback };
+
+const skySource = window.villageNightPhotos?.sky;
+
+if (skySource) {
+  new T.TextureLoader().load(
+    skySource,
+    texture => {
+      texture.colorSpace = T.SRGBColorSpace;
+      uniforms.skyMap.value = texture;
+    },
+    undefined,
+    () => console.warn("Using fallback village sky.")
+  );
+}
+
     const material=new T.ShaderMaterial({uniforms,side:T.FrontSide,
       vertexShader:`
         uniform float time; varying vec3 worldPoint; varying float crest;
