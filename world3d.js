@@ -288,7 +288,8 @@
     finalcreature: 'assets/finalcreature-model.glb',
     ecal: 'assets/ecal-model.glb',
     finnew: 'assets/finnew-model.glb',
-    hammerer: 'assets/fantasy-creature.glb',
+    // The optional fantasy-creature GLB is not shipped; use the built-in twin-hammer enemy.
+    hammerer: null,
     golden: 'assets/red-dawn-model.glb',
     wildclaw: 'assets/wildclaw-model.glb',
     lizard: 'assets/lizard-warrior.glb',
@@ -321,7 +322,8 @@
     return frostCastPreloaded&&frostCastLoadsSettled;
   };
   const skinGeometryCache = new Map();
-  const villainModelUrls = { hammerer: 'assets/fantasy-creature.glb' };
+  // Keep the optional villain loader dormant until its dedicated GLB is available.
+  const villainModelUrls = {};
   const villainModelLoads = new Map();
   const helmetModelLoads = new Map();
   const modelLoader = window.GLTFLoader ? new window.GLTFLoader() : null;
