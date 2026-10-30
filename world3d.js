@@ -916,7 +916,8 @@
       const wand = cylinder(body, .035, .05, 1.6, mats.dark, [ .78, 1.05, .05]); wand.rotation.z = -.12;
       const wandGem=sphere(body, .17, mats.fire, [.78, 1.9, .05]); wandGem.material=mats.fire.clone(); root.userData.wand = wand; root.userData.wandGem = wandGem;
     }
-    if (kind === 'bonecaller' || kind === 'hammerer') {
+    // Only the named caster needs an overhead title: six hammerer labels obscured the battle.
+    if (kind === 'bonecaller') {
       const labelCanvas = document.createElement('canvas'); labelCanvas.width = 512; labelCanvas.height = 112;
       const labelCtx = labelCanvas.getContext('2d');
       const label = kind === 'bonecaller' ? 'THE BONECALLER' : 'TWIN HAMMERER', subtitle = kind === 'bonecaller' ? 'WAND MAGE' : 'DUAL HAMMER BRUTE';
