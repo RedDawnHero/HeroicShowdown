@@ -201,10 +201,24 @@
     }
     delta.y=Math.max(delta.y,2.2);
     // Lift over village surfaces instead of collapsing follow distance.
+    // The terrain height grid can jump between neighboring stair/roof cells.
+    // Damping the camera correction avoids one-frame camera flicker.
     for(let i=8;i<=16;i++){
       const f=i/16,x=focus.x+delta.x*f,z=focus.z+delta.z*f;
       const h=window.modelVillageHeight(x,z);
       if(h!==null)delta.y=Math.max(delta.y,((failed?Math.min(h,bridgeY+12):h)+.65-focus.y)/f);
+    }
+    const now=performance.now()/1000;
+    const prev=camera.userData.villageCameraClearance;
+    const raw=delta.y;
+    if(!prev||now-prev.time>.3||Math.hypot(focus.x-prev.x,focus.z-prev.z)>8){
+      camera.userData.villageCameraClearance={height:raw,time:now,x:focus.x,z:focus.z};
+    }else{
+      const dt=Math.max(.001,Math.min(.05,now-prev.time));
+      const response=raw>prev.height?22:7;
+      prev.height+=(raw-prev.height)*(1-Math.exp(-dt*response));
+      prev.time=now;prev.x=focus.x;prev.z=focus.z;
+      delta.y=prev.height;
     }
     camera.position.copy(focus).add(delta);
   };
