@@ -23,24 +23,35 @@
       foundation.receiveShadow=true;
       root.add(foundation);
       scene.add(root);
+      const loadingLabel=document.createElement('div');
+      loadingLabel.className='frozen-city-model-status';
+      loadingLabel.style.cssText='position:absolute;right:14px;top:16px;z-index:15;pointer-events:none;background:#102736e8;color:#f4fbff;border:1px solid #82bfd0;padding:9px 12px;border-radius:7px;font:600 13px system-ui,sans-serif;max-width:270px';
+      loadingLabel.textContent='Frozen City 3D model · preparing';
+      loadingLabel.hidden=true;
+      document.querySelector('.arena-wrap')?.appendChild(loadingLabel);
+      const showStatus=(text)=>{loadingLabel.textContent=text;};
 
       let requested=false,cityModel=null;
       window.heroIceLandscapeStatus='ready';
       window.heroFrozenCityModelStatus='preview';
       function beginModelLoad(){
         if(requested)return;
-        requested=true;
         if(!window.GLTFLoader){
-          console.warn('Frozen landscape: GLTF loader unavailable; using snow preview');
+          // The engine loader may not have initialized on the first frame.
+          // Leave requested=false so the next active frame retries automatically.
+          showStatus('Frozen City · preparing 3D loader');
           return;
         }
+        requested=true;
         window.heroFrozenCityModelStatus='loading';
+        showStatus('Loading original Frozen City model (66 MB)…');
         new window.GLTFLoader().load(
           'assets/frozen-landscape.glb',
           gltf=>{
             const model=gltf?.scene;
             if(!model){
               window.heroFrozenCityModelStatus='preview';
+              showStatus('Frozen City model has no visible scene · using preview');
               console.warn('Frozen landscape: model has no scene; using snow preview');
               return;
             }
@@ -57,17 +68,27 @@
             window.heroIceLandscapeStatus='ready';
             window.heroFrozenCityModelStatus='ready';
             // Original mesh is visible, but collision remains a temporary flat-ground fallback.
+            showStatus('Original Frozen City model loaded');
             console.info('Original Level 2 frozen landscape model loaded (temporary ground collision)');
           },
-          undefined,
+          progress=>{
+            if(progress.lengthComputable && progress.total>0){
+              const percent=Math.round(progress.loaded/progress.total*100);
+              showStatus('Loading original Frozen City · '+percent+'%');
+            }else if(progress.loaded>0){
+              showStatus('Loading original Frozen City · '+Math.round(progress.loaded/1048576)+' MB received');
+            }
+          },
           error=>{
             window.heroFrozenCityModelStatus='preview';
+            showStatus('Frozen City model failed to load · showing preview');
             console.warn('Frozen landscape model did not load; using snow-city preview',error);
           }
         );
       }
       return {root,update(active,position,t){
         root.visible=active;
+        loadingLabel.hidden=!active||!!cityModel;
         if(!active)return;
         beginModelLoad();
         if(street){
