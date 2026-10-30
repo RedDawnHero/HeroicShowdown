@@ -1,8 +1,8 @@
 /* A streamed 3D ruin avenue. All nearby architecture has volume and parallax. */
 (() => {
-  window.createTravelWorld=(T,scene)=>{
+  window.createTravelWorld=(T,scene,renderer)=>{
     const root=new T.Group();root.name='Explorable ruined route';scene.add(root);
-    const frozen=window.createFrozenLandscape?.(T,scene);
+    const frozen=window.createFrozenLandscape?.(T,scene,renderer);
     const home=window.createHomeVillage?.(T,scene);
     const chunks=new Map(),textures={},skies={},materials={};
     const random=n=>{const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x);};
