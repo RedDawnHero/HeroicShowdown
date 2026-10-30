@@ -20,7 +20,17 @@
       for(let y=0;y<256;y+=32){g.beginPath();g.moveTo(0,y);g.lineTo(256,y);g.stroke();if(kind!=='wood')for(let x=(y%64?24:0);x<256;x+=48){g.beginPath();g.moveTo(x,y);g.lineTo(x,y+32);g.stroke();}}
       const tex=new T.CanvasTexture(c);tex.colorSpace=T.SRGBColorSpace;tex.wrapS=tex.wrapT=T.RepeatWrapping;return tex;
     }
-    wood.map=window.villagePhotoMaterial(T,'wood').map;beam.map=wood.map;stone.map=window.villagePhotoMaterial(T,'stairs',[.38,0,.25,.22]).map;moss.map=window.villagePhotoMaterial(T,'window',[.12,.75,.4,.22]).map;
+   
+const photoMaterial = (...args) =>
+  typeof window.villagePhotoMaterial === 'function'
+    ? window.villagePhotoMaterial(T, ...args)
+    : null;
+
+wood.map = photoMaterial('wood')?.map ?? wood.map;
+beam.map = wood.map;
+stone.map = photoMaterial('stairs', [.38, 0, .25, .22])?.map ?? stone.map;
+moss.map = photoMaterial('window', [.12, .75, .4, .22])?.map ?? moss.map;
+
     function box(parent,w,h,d,x,y,z,m){const o=new T.Mesh(new T.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o;}
     // Wide, level stone promenade; the river is beside the walkable route.
     for(const side of [-1,1]){box(root,13,.5,140,side*13.5,-.27,-55,wood);
@@ -62,3 +72,4 @@
     }};
   };
 })();
+
