@@ -6,6 +6,25 @@
     {x:245,y:-720,title:'The robot army',image:2,text:'The same leaders marched with a robot army. Mr. Misfit was part of a much larger threat.'},
     {x:755,y:-1160,title:'The revenge note',image:3,text:'“I will come back for revenge.” The note is unsigned. Someone expected this defeat. Was Mr. Misfit a distraction?'}
   ];
+  // Keep the clue system playable if the optional evidence-image bundle is missing.
+  // Original photos are used when available; temporary cards appear only when needed.
+  if (!Array.isArray(window.homeEvidenceImages)) window.homeEvidenceImages = [];
+  const clueLabels = ['THE SECRET ALLIANCE','THE PLANNING ROOM','THE ROBOT ARMY','THE REVENGE NOTE'];
+  for (let i = 0; i < clueLabels.length; i++) {
+    if (typeof window.homeEvidenceImages[i] === 'string' && window.homeEvidenceImages[i]) continue;
+    const canvas = document.createElement('canvas');
+    canvas.width = 768; canvas.height = 432;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#192534'; ctx.fillRect(0, 0, 768, 432);
+    ctx.strokeStyle = '#e3be76'; ctx.lineWidth = 5; ctx.strokeRect(20, 20, 728, 392);
+    ctx.fillStyle = '#edc77b'; ctx.font = 'bold 23px sans-serif';
+    ctx.fillText('HEROIC SHOWDOWN - VILLAGE EVIDENCE', 54, 88);
+    ctx.fillStyle = '#fff2d6'; ctx.font = 'bold 39px sans-serif';
+    ctx.fillText(clueLabels[i], 54, 220);
+    ctx.fillStyle = '#c4cfdb'; ctx.font = '21px sans-serif';
+    ctx.fillText('Original evidence photo unavailable in this build', 54, 291);
+    window.homeEvidenceImages[i] = canvas.toDataURL('image/png');
+  }
   const bridges=[4,-32,-68,-104];
   window.homeVillageWalkable=(x,y)=>Number.isFinite(x)&&Number.isFinite(y);
   window.homePhotoTexture=(T,i)=>{window.homePhotoTextures=window.homePhotoTextures||[];if(!window.homePhotoTextures[i]){const texture=new T.TextureLoader().load(window.homeEvidenceImages[i]);texture.colorSpace=T.SRGBColorSpace;window.homePhotoTextures[i]=texture;}return window.homePhotoTextures[i];};
