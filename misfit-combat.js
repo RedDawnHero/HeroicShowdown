@@ -33,7 +33,11 @@
       }
       const speed=s.giant?155:138;
       s.bossX=Math.max(34,Math.min(966,s.bossX+vx*speed*dt));
-      s.bossY=Math.max(s.round===2?window.heroIceTerrain.bounds.minY:-18000,Math.min(s.round===2?window.heroIceTerrain.bounds.maxY:574,s.bossY+vy*speed*dt));
+      // The frozen-city terrain script is optional; keep the boss moving if it fails to load.
+      const iceBounds=s.round===2?window.heroIceTerrain?.bounds:null;
+      const minY=Number.isFinite(iceBounds?.minY)?iceBounds.minY:-18000;
+      const maxY=Number.isFinite(iceBounds?.maxY)?iceBounds.maxY:574;
+      s.bossY=Math.max(minY,Math.min(maxY,s.bossY+vy*speed*dt));
     }
     if(s.bossAttack<=0){
       if(d<105){s.misfitMelee={age:0,target:target.id,done:false};s.bossAttack=1.8;s.bossWalking=false;say('MR. MISFIT IS WINDING UP!');}
