@@ -8,7 +8,7 @@
     // Until a real collision map is restored, movement uses the existing
     // level-two flat-ground fallback rather than claiming terrain collision.
     window.heroFrozenWorldFallback=true;
-    window.createFrozenLandscape=(T,scene)=>{
+    window.createFrozenLandscape=(T,scene,renderer)=>{
       const street=window.createSnowStreet?.(T);
       const root=new T.Group();root.name='Frozen city (model with preview fallback)';
       root.visible=false;
@@ -278,8 +278,13 @@
           error=>{
             window.heroIceLandscapeStatus='error';
             window.heroFrozenCityModelStatus='error';
-            showStatus('Unable to load the original Frozen City model. Retry, or choose the snow preview.');
-            console.warn('Frozen landscape model did not load; using snow-city preview',error);
+            if(cityModel){
+              showStatus('Frozen City model loaded, but terrain preparation failed. Retry the original city.');
+              console.error('Frozen City terrain setup error after GLB load:',error);
+            }else{
+              showStatus('Unable to load the original Frozen City model. Retry, or choose the snow preview.');
+              console.warn('Frozen landscape model could not load:',error);
+            }
           }
         );
       }
