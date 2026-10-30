@@ -62,6 +62,97 @@
       let requested=false,cityModel=null;
       window.heroIceLandscapeStatus='ready';
       window.heroFrozenCityModelStatus='preview';
+      // Reconstruct a lightweight ground-height lookup from the SAME GLB mesh
+      // shown on screen. The generated height file is absent on GitHub Pages.
+      // Work in frame-sized batches to keep a large model from locking the tab.
+      function buildVisibleGroundHeights(model, finished){
+        const minX=-75, minZ=-320, step=.4, columns=376, rows=1001;
+        const highest=new Float32Array(columns*rows);
+        highest.fill(-Infinity);
+        const meshes=[];
+        model.updateMatrixWorld(true);
+        model.traverse(object=>{
+          if(!object.isMesh || !object.geometry?.getAttribute('position'))return;
+          const attribute=object.geometry.getAttribute('position');
+          const normal=object.geometry.getAttribute('normal');
+          const m=object.matrixWorld.elements;
+          const nm=new T.Matrix3().getNormalMatrix(object.matrixWorld).elements;
+          meshes.push({attribute,normal,m:Array.from(m),nm:Array.from(nm),i:0});
+        });
+        const total=meshes.reduce((sum,mesh)=>sum+mesh.attribute.count,0);
+        let visited=0,placed=0,meshIndex=0;
+        const lookup=(x,z)=>{
+          if(!Number.isFinite(x)||!Number.isFinite(z))return 0;
+          const ix=Math.floor((x-minX)/step),iz=Math.floor((z-minZ)/step);
+          if(ix<0||iz<0||ix>=columns||iz>=rows)return 0;
+          let best=-Infinity;
+          // Neighbour checks bridge small spaces between nearby vertices
+          // and keep feet above uneven snow rather than partly inside it.
+          for(let dz=-2;dz<=2;dz++){
+            const j=iz+dz;if(j<0||j>=rows)continue;
+            for(let dx=-2;dx<=2;dx++){
+              const i=ix+dx;if(i<0||i>=columns)continue;
+              const y=highest[j*columns+i];
+              if(y>best)best=y;
+            }
+          }
+          if(Number.isFinite(best))return best+.075;
+          // Larger gaps are handled conservatively, without moving the GLB.
+          for(let radius=3;radius<=12;radius+=3){
+            for(let dz=-radius;dz<=radius;dz+=2){
+              const j=iz+dz;if(j<0||j>=rows)continue;
+              for(let dx=-radius;dx<=radius;dx+=2){
+                const i=ix+dx;if(i<0||i>=columns)continue;
+                best=Math.max(best,highest[j*columns+i]);
+              }
+            }
+            if(Number.isFinite(best))return best+.075;
+          }
+          return 0;
+        };
+        const tick=()=>{
+          let budget=65000;
+          while(budget>0&&meshIndex<meshes.length){
+            const mesh=meshes[meshIndex],a=mesh.attribute,n=mesh.normal,m=mesh.m,nm=mesh.nm;
+            const end=Math.min(a.count,mesh.i+budget);
+            for(let i=mesh.i;i<end;i++){
+              if(n){
+                const nx=n.getX(i),ny=n.getY(i),nz=n.getZ(i);
+                const up=nm[1]*nx+nm[4]*ny+nm[7]*nz;
+                if(up<.22)continue; // exclude vertical walls and underside
+              }
+              const vx=a.getX(i),vy=a.getY(i),vz=a.getZ(i);
+              const x=m[0]*vx+m[4]*vy+m[8]*vz+m[12];
+              const y=m[1]*vx+m[5]*vy+m[9]*vz+m[13];
+              const z=m[2]*vx+m[6]*vy+m[10]*vz+m[14];
+              if(y>55||y< -45)continue; // exclude remote geometry above the play route
+              const ix=Math.floor((x-minX)/step),iz=Math.floor((z-minZ)/step);
+              if(ix<0||iz<0||ix>=columns||iz>=rows)continue;
+              const key=iz*columns+ix;
+              if(y>highest[key]){if(!Number.isFinite(highest[key]))placed++;highest[key]=y;}
+            }
+            const count=end-mesh.i;
+            mesh.i=end;visited+=count;budget-=count;
+            if(mesh.i===a.count)meshIndex++;
+          }
+          if(meshIndex<meshes.length){
+            showStatus('Aligning characters to ice surface · '+Math.round(100*visited/Math.max(1,total))+'%');
+            requestAnimationFrame(tick);
+          }else if(placed>0){
+            window.heroIceTerrain={
+              height:lookup,
+              // Preserve the coordinates and shape of the original visible GLB.
+              source:'original-frozen-landscape.glb'
+            };
+            console.info('Frozen City ground sampling ready:',placed,'surface cells');
+            finished(true);
+          }else{
+            console.warn('Frozen City model had no usable ground vertices');
+            finished(false);
+          }
+        };
+        requestAnimationFrame(tick);
+      }
       function beginModelLoad(){
         if(requested||window.heroFrozenCityModelStatus==='error'||window.heroFrozenCityModelStatus==='preview')return;
         if(!window.GLTFLoader){
@@ -94,11 +185,18 @@
             cityModel=model;
             if(street)street.group.visible=false;
             foundation.visible=false;
-            window.heroIceLandscapeStatus='ready';
-            window.heroFrozenCityModelStatus='ready';
-            // Original mesh is visible, but collision remains a temporary flat-ground fallback.
-            showStatus('Original Frozen City model loaded');
-            console.info('Original Level 2 frozen landscape model loaded (temporary ground collision)');
+            showStatus('Preparing accurate character ground placement…');
+            buildVisibleGroundHeights(model,success=>{
+              if(success){
+                window.heroIceLandscapeStatus='ready';
+                window.heroFrozenCityModelStatus='ready';
+                showStatus('Original Frozen City terrain and character ground ready');
+              }else{
+                window.heroIceLandscapeStatus='error';
+                window.heroFrozenCityModelStatus='error';
+                showStatus('Unable to map the ice surface. Retry or use snow preview.');
+              }
+            });
           },
           progress=>{
             if(progress.lengthComputable && progress.total>0){
