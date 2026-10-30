@@ -2,9 +2,33 @@
  window.createVillageEndlessDeck=(T,root)=>{
   const wood=window.villageWarmMaterials(T).wood.clone();wood.color.setHex(0xcda878);
   const map=wood.map.clone();map.repeat.set(90,90);map.needsUpdate=true;wood.map=map;
-  const lampPhoto=new T.TextureLoader().load(window.villagePhotoSources.lamp);lampPhoto.colorSpace=T.SRGBColorSpace;
-  const photoMaterial=new T.MeshBasicMaterial({map:lampPhoto,side:T.DoubleSide});
-  photoMaterial.onBeforeCompile=shader=>{shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>', '#include <map_fragment>\nif(min(diffuseColor.r,min(diffuseColor.g,diffuseColor.b))>.84)discard;');};
+ 
+const lampSource = window.villagePhotoSources?.lamp;
+
+const lampPhoto = lampSource
+  ? new T.TextureLoader().load(lampSource)
+  : null;
+
+if (lampPhoto) {
+  lampPhoto.colorSpace = T.SRGBColorSpace;
+}
+
+const photoMaterial = new T.MeshBasicMaterial({
+  map: lampPhoto,
+  side: T.DoubleSide,
+  transparent: !lampPhoto,
+  opacity: lampPhoto ? 1 : 0
+});
+
+if (lampPhoto) {
+  photoMaterial.onBeforeCompile = shader => {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <map_fragment>',
+      '#include <map_fragment>\nif(min(diffuseColor.r,min(diffuseColor.g,diffuseColor.b))>.84)discard;'
+    );
+  };
+}
+
   const floors=[-1,1].map(side=>{const floor=new T.Mesh(new T.PlaneGeometry(1800,1800),wood);floor.rotation.x=-Math.PI/2;floor.position.set(side*907,-.055,-55);floor.receiveShadow=true;root.add(floor);return floor;});
   const brass=new T.MeshStandardMaterial({color:0x503723,metalness:.45,roughness:.45}),bulb=new T.MeshStandardMaterial({color:0xffedb3,emissive:0xffc55b,emissiveIntensity:5});
   const stations=[];
