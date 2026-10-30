@@ -62,96 +62,89 @@
       let requested=false,cityModel=null;
       window.heroIceLandscapeStatus='ready';
       window.heroFrozenCityModelStatus='preview';
-      // Reconstruct a lightweight ground-height lookup from the SAME GLB mesh
-      // shown on screen. The generated height file is absent on GitHub Pages.
-      // Work in frame-sized batches to keep a large model from locking the tab.
-      function buildVisibleGroundHeights(model, finished){
-        const minX=-75, minZ=-320, step=.4, columns=376, rows=1001;
-        const highest=new Float32Array(columns*rows);
-        highest.fill(-Infinity);
-        const meshes=[];
+      // The optional authored collision data is absent. Derive the playable
+      // ground directly from the loaded, *visible* GLB triangles rather than
+      // rejecting the scene when its vertices miss a hard-coded sampling grid.
+      function buildVisibleGroundHeights(model,finished){
         model.updateMatrixWorld(true);
-        model.traverse(object=>{
-          if(!object.isMesh || !object.geometry?.getAttribute('position'))return;
-          const attribute=object.geometry.getAttribute('position');
-          const normal=object.geometry.getAttribute('normal');
-          const m=object.matrixWorld.elements;
-          const nm=new T.Matrix3().getNormalMatrix(object.matrixWorld).elements;
-          meshes.push({attribute,normal,m:Array.from(m),nm:Array.from(nm),i:0});
+        const extent=new T.Box3().setFromObject(model);
+        const floorObjects=[];
+        model.traverse(mesh=>{
+          if(!mesh.isMesh||!mesh.geometry?.getAttribute('position'))return;
+          mesh.geometry.computeBoundingBox();
+          floorObjects.push({mesh,bounds:new T.Box3().setFromObject(mesh)});
         });
-        const total=meshes.reduce((sum,mesh)=>sum+mesh.attribute.count,0);
-        let visited=0,placed=0,meshIndex=0;
-        const lookup=(x,z)=>{
+        const raycaster=new T.Raycaster();
+        raycaster.ray.direction.set(0,-1,0);
+        raycaster.far=Math.max(200,extent.max.y-extent.min.y+40);
+        const originY=Math.max(150,extent.max.y+10);
+        const cache=new Map(),up=new T.Vector3(),normalMatrix=new T.Matrix3();
+        let successful=0;
+        const groundAt=(x,z)=>{
           if(!Number.isFinite(x)||!Number.isFinite(z))return 0;
-          const ix=Math.floor((x-minX)/step),iz=Math.floor((z-minZ)/step);
-          if(ix<0||iz<0||ix>=columns||iz>=rows)return 0;
-          let best=-Infinity;
-          // Neighbour checks bridge small spaces between nearby vertices
-          // and keep feet above uneven snow rather than partly inside it.
-          for(let dz=-2;dz<=2;dz++){
-            const j=iz+dz;if(j<0||j>=rows)continue;
-            for(let dx=-2;dx<=2;dx++){
-              const i=ix+dx;if(i<0||i>=columns)continue;
-              const y=highest[j*columns+i];
-              if(y>best)best=y;
-            }
-          }
-          if(Number.isFinite(best))return best+.075;
-          // Larger gaps are handled conservatively, without moving the GLB.
-          for(let radius=3;radius<=12;radius+=3){
-            for(let dz=-radius;dz<=radius;dz+=2){
-              const j=iz+dz;if(j<0||j>=rows)continue;
-              for(let dx=-radius;dx<=radius;dx+=2){
-                const i=ix+dx;if(i<0||i>=columns)continue;
-                best=Math.max(best,highest[j*columns+i]);
+          const cellX=Math.round(x*2)/2,cellZ=Math.round(z*2)/2;
+          const key=cellX+','+cellZ;
+          if(cache.has(key))return cache.get(key);
+          raycaster.ray.origin.set(cellX,originY,cellZ);
+          let best=null,quality=Infinity;
+          for(const entry of floorObjects){
+            const bb=entry.bounds;
+            if(cellX<bb.min.x||cellX>bb.max.x||cellZ<bb.min.z||cellZ>bb.max.z)continue;
+            const mesh=entry.mesh;
+            // Some imported terrain surfaces have reversed normals. Both
+            // sides must be tested without permanently altering its visuals.
+            const materials=Array.isArray(mesh.material)?mesh.material:[mesh.material];
+            const previous=materials.map(m=>m?.side);
+            for(const material of materials)if(material)material.side=T.DoubleSide;
+            let intersections=[];
+            try{intersections=raycaster.intersectObject(mesh,false);}
+            finally{materials.forEach((m,i)=>{if(m)m.side=previous[i];});}
+            for(const hit of intersections){
+              if(hit.face){
+                normalMatrix.getNormalMatrix(hit.object.matrixWorld);
+                up.copy(hit.face.normal).applyMatrix3(normalMatrix).normalize();
+                if(Math.abs(up.y)<.28)continue;
               }
+              const h=hit.point.y;
+              // Prefer the usable ground near the gameplay plane over roofs
+              // and cave ceilings at the same X/Z coordinate.
+              const score=Math.abs(h)+(h< -20||h>80?1000:0);
+              if(score<quality){quality=score;best=h;}
             }
-            if(Number.isFinite(best))return best+.075;
           }
-          return 0;
+          const height=Number.isFinite(best)?best+.10:0;
+          if(best!==null)successful++;
+          if(cache.size>7000)cache.clear();
+          cache.set(key,height);
+          return height;
         };
-        const tick=()=>{
-          let budget=65000;
-          while(budget>0&&meshIndex<meshes.length){
-            const mesh=meshes[meshIndex],a=mesh.attribute,n=mesh.normal,m=mesh.m,nm=mesh.nm;
-            const end=Math.min(a.count,mesh.i+budget);
-            for(let i=mesh.i;i<end;i++){
-              if(n){
-                const nx=n.getX(i),ny=n.getY(i),nz=n.getZ(i);
-                const up=nm[1]*nx+nm[4]*ny+nm[7]*nz;
-                if(up<.22)continue; // exclude vertical walls and underside
-              }
-              const vx=a.getX(i),vy=a.getY(i),vz=a.getZ(i);
-              const x=m[0]*vx+m[4]*vy+m[8]*vz+m[12];
-              const y=m[1]*vx+m[5]*vy+m[9]*vz+m[13];
-              const z=m[2]*vx+m[6]*vy+m[10]*vz+m[14];
-              if(y>55||y< -45)continue; // exclude remote geometry above the play route
-              const ix=Math.floor((x-minX)/step),iz=Math.floor((z-minZ)/step);
-              if(ix<0||iz<0||ix>=columns||iz>=rows)continue;
-              const key=iz*columns+ix;
-              if(y>highest[key]){if(!Number.isFinite(highest[key]))placed++;highest[key]=y;}
-            }
-            const count=end-mesh.i;
-            mesh.i=end;visited+=count;budget-=count;
-            if(mesh.i===a.count)meshIndex++;
-          }
-          if(meshIndex<meshes.length){
-            showStatus('Aligning characters to ice surface · '+Math.round(100*visited/Math.max(1,total))+'%');
-            requestAnimationFrame(tick);
-          }else if(placed>0){
-            window.heroIceTerrain={
-              height:lookup,
-              // Preserve the coordinates and shape of the original visible GLB.
-              source:'original-frozen-landscape.glb'
-            };
-            console.info('Frozen City ground sampling ready:',placed,'surface cells');
-            finished(true);
+        window.heroIceTerrain={
+          height:groundAt,
+          source:'frozen-landscape.glb triangle raycasts'
+        };
+        // A missing surface at one spawn must not make an entire, correctly
+        // loaded Frozen City unplayable. Inspect playable points and report.
+        const probes=[[11,-1],[0,0],[10,-10],[-8,-2],[0,-20],[15,-20]];
+        let index=0;
+        const check=()=>{
+          if(index<probes.length){
+            const [x,z]=probes[index++];
+            groundAt(x,z);
+            showStatus('Checking actual ice surface · '+Math.round(index*100/probes.length)+'%');
+            requestAnimationFrame(check);
           }else{
-            console.warn('Frozen City model had no usable ground vertices');
-            finished(false);
+            console.info('Frozen City GLB terrain bounds:',extent.min,extent.max,
+              'meshes:',floorObjects.length,'ground samples:',successful);
+            if(!successful){
+              console.warn('Frozen City terrain is not under the tested spawn positions; fallback ground remains available.');
+              showStatus('Original Frozen City loaded; ground alignment unverified');
+            }else{
+              showStatus('Original Frozen City ground alignment ready');
+            }
+            finished(true);
           }
         };
-        requestAnimationFrame(tick);
+        requestAnimationFrame(check);
       }
       function beginModelLoad(){
         if(requested||window.heroFrozenCityModelStatus==='error'||window.heroFrozenCityModelStatus==='preview')return;
