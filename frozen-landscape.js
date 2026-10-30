@@ -124,7 +124,40 @@
     const skyColor=new T.Color(0x8babbc);
     const loader=new window.GLTFLoader();
     window.heroIceLandscapeStatus='idle';
-    function fail(e){console.warn('Frozen landscape loading failed',e);error=true;window.heroIceLandscapeStatus='error';notice.replaceChildren(document.createTextNode('The frozen landscape could not load. '));const retry=document.createElement('button');retry.textContent='Try again';retry.onclick=()=>{started=false;error=false;load();};notice.append(retry);}
+    function fail(e){
+      // The original GLB is optional on GitHub Pages. Never freeze Level 2
+      // controls, enemies or the level transition while its download fails.
+      console.warn('Original frozen landscape unavailable; using safe terrain preview',e);
+      error=true;
+      if(!model && n*rows<=250000){
+        // Rebuild approximate snow surface from the real collision height grid.
+        // The flat foundation stays underneath unmodeled sections.
+        const points=new Float32Array(n*rows*3),faces=[];
+        for(let j=0;j<rows;j++)for(let i=0;i<n;i++){
+          const k=j*n+i,h=heights[k];
+          points[k*3]=data.minX+i*cellX;
+          points[k*3+1]=h===-32768?0:h/100;
+          points[k*3+2]=data.minZ+j*cellZ;
+        }
+        for(let j=0;j<rows-1;j++)for(let i=0;i<n-1;i++){
+          const a=j*n+i,b=a+1,c=a+n,d=c+1;
+          if([a,b,c,d].some(k=>heights[k]===-32768))continue;
+          faces.push(a,c,b,b,c,d);
+        }
+        const shape=new T.BufferGeometry();
+        shape.setAttribute('position',new T.BufferAttribute(points,3));
+        shape.setIndex(faces);
+        shape.computeVertexNormals();
+        const preview=new T.Mesh(shape,new T.MeshStandardMaterial({
+          map:groundTexture,color:0xd9e6ed,roughness:.92,side:T.DoubleSide
+        }));
+        preview.name='Frozen terrain height-map fallback';
+        preview.receiveShadow=true;root.add(preview);model=preview;
+      }
+      loaded=true;window.heroIceLandscapeStatus='ready';
+      notice.textContent='Playing with lightweight frozen terrain';
+      notice.style.display='none';
+    }
     function accept(gltf){
       model=gltf.scene;model.scale.setScalar(data.scale);model.position.z=data.zOffset;
       model.traverse(o=>{if(o.isMesh){o.receiveShadow=true;o.castShadow=false;}});
