@@ -58,7 +58,7 @@
     if(waterMap){waterMap.wrapS=waterMap.wrapT=T.RepeatWrapping;waterMap.needsUpdate=true;riverMaterial.uniforms.waterMap.value=waterMap;riverMaterial.uniforms.hasWaterMap.value=1;}
     water=riverSurface;
     ready=true;status.style.display='none';
-  }).catch(e=>{failed=true;if(!ready)fallback();ready=true;status.textContent=ready?'Village loaded · optional water is unavailable':'Village preview · original 3D terrain needs uploading';console.error(e);});}
+  }).catch(e=>{const originalVillageLoaded=ready;failed=!originalVillageLoaded;if(!originalVillageLoaded)fallback();ready=true;status.textContent=originalVillageLoaded?'Village loaded · optional water is unavailable':'Village preview · original 3D terrain is unavailable';console.error(e);});}
   // Flat water extends beyond the fog horizon in every direction.
   // Animate world-space flow rather than moving tiles, so the river never resets visibly.
   const riverGeometry=new T.PlaneGeometry(4000,4000,1,1);
