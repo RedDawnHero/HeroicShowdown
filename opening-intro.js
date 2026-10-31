@@ -92,9 +92,9 @@
   if(a<15){const keys=[[0,0,3,90],[4,0,130,45],[7,0,120,-5],[10,4,35,-30],[12,-7,8,-56],[13.5,9,16,-65],[15,5,42,-38]];let k=0;while(k<keys.length-2&&a>keys[k+1][0])k++;const u=ease(a,keys[k][0],keys[k+1][0]);eye.set(...keys[k].slice(1)).lerp(new T.Vector3(...keys[k+1].slice(1)),u);target.set(0,a<7?65:38,-65);roll=Math.sin(ease(a,9,14)*Math.PI)*-.16;}
   else if(a<30){const u=ease(a,15,25),angle=1.1-u*2.7;target.copy(ecal.position).add(new T.Vector3(0,2.6,0));eye.copy(target).add(new T.Vector3(Math.sin(angle)*(8-u*4),.8,Math.cos(angle)*(8-u*4)));if(a>27){e.head.rotation.y=-ease(a,27,28)*.65;flash.intensity=60*(1-ease(a,27,29));if(a-dt<=27)boom();}}
   else if(a<50){
-    const run=ease(a,30,34),u=Math.max(0,Math.min(1,(age-13)/5.1));
+    const run=ease(a,30,34),u=Math.max(0,Math.min(1,(age-13.1)/5.2));
     // A falling somersault, with no glider geometry attached to the character.
-    ecal.position.set(0,38.3+Math.sin(u*Math.PI)*3-20*u*u,-47-run*8-u*47);
+    ecal.position.set(0,38.3+12*u-32*u*u,-55-u*47);
     e.arms.forEach((b,i)=>{b.rotation.z=(i?-1:1)*.2;b.rotation.x=-.35;});
     e.thighs.forEach((b,i)=>b.rotation.x=a<34?Math.sin(a*10+i*Math.PI)*.65:-.2);
     e.knees.forEach(b=>b.rotation.x=.25);
@@ -107,8 +107,12 @@
   if(age>=12.3&&age<20){
     const crouch=ease(age,12.3,12.65)*(1-ease(age,12.65,13.1));
     const tuck=ease(age,13.3,13.65)*(1-ease(age,15.1,15.7));
-    const rotation=ease(age,13.5,15.65),land=ease(age,18.1,18.3)*(1-ease(age,18.5,19.7));
+    const rotation=ease(age,13.5,15.65),land=ease(age,18.3,18.5)*(1-ease(age,18.6,19.7));
     ecal.position.y-=crouch*.4;
+    // Rotate around the torso, rather than swinging the body around its feet.
+    const flipAngle=-rotation*Math.PI*2, pivot=1.8;
+    ecal.position.y+=pivot*(1-Math.cos(flipAngle));
+    ecal.position.z-=pivot*Math.sin(flipAngle);
     ecal.rotation.x=-rotation*Math.PI*2+land*.15;
     ecal.rotation.z=Math.sin(rotation*Math.PI)*.1;
     e.thighs.forEach((b,i)=>b.rotation.x=-crouch*.8-tuck*(i?1.35:1.6)-land*(i?.8:1.2));
@@ -116,8 +120,8 @@
     e.arms.forEach((b,i)=>{b.rotation.x=.6*crouch-tuck*(i?.8:1.1)-land*(i?.4:1);b.rotation.z=(i?-1:1)*(.15+.2*tuck+.2*land);});
     e.forearms.forEach((b,i)=>b.rotation.x=-.25-tuck*(i?1.2:1.4));
     e.spine.rotation.x=.2*tuck+.2*land;e.chest.rotation.x=.25*tuck+.3*land;e.head.rotation.x=-.15*tuck;
-    if(age>=18.1){ecal.updateMatrixWorld(true);const feetY=Math.min(...e.feet.map(f=>f.getWorldPosition(new T.Vector3()).y));ecal.position.y+=18.32-feetY;}
-    if(age>=18.1&&age-dt<18.1)boom();
+    if(age>=18.3){ecal.updateMatrixWorld(true);const feetY=Math.min(...e.feet.map(f=>f.getWorldPosition(new T.Vector3()).y));ecal.position.y+=18.32-feetY;}
+    if(age>=18.3&&age-dt<18.3)boom();
     target.copy(ecal.position).add(new T.Vector3(0,2,0));eye.copy(target).add(new T.Vector3(5,2,9));
   }else{e.spine.rotation.x=0;e.chest.rotation.x=0;e.head.rotation.x=0;}
   e.tail?.forEach((b,i)=>b.rotation.y=Math.sin(a*4-i*.6)*.15);if(e.chest)e.chest.rotation.y=Math.sin(a*3)*.04;

@@ -1474,6 +1474,72 @@
   const villageFollowPosition=new THREE.Vector3();
   let villageFollowMode=null;
   let lastFrame = performance.now(), cameraReady = false, backdropAt = -Infinity, backdropLevel = null, cameraLevel = 0;
+
+  let finalComboRing=null;
+  function renderFinalCombo(state, camera, rigs, dt) {
+    const combo=state?.finalCombo;
+    if(!combo){if(finalComboRing)finalComboRing.visible=false;return;}
+    const hero=rigs.get(combo.playerId),boss=rigs.get('ashen-king');
+    if(!hero||!boss)return;
+    const a=combo.age, smooth=(x)=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);};
+    const g=hero.userData.glbRig;
+    const center=boss.position.clone();
+    hero.position.copy(center).add(new THREE.Vector3(0,0,2.15));
+    hero.rotation.set(0,Math.PI,0);
+    boss.rotation.z=0;
+    const punch=(t)=>Math.sin(Math.PI*smooth((a-t)/.35));
+    if(g){
+      for(const arm of g.arms||[])arm.rotation.set(-.35,0,0);
+      for(const arm of g.forearms||[])arm.rotation.x=-.8;
+      for(const leg of g.thighs||[])leg.rotation.x=-.12;
+      for(const leg of g.knees||[])leg.rotation.x=.2;
+      if(g.chest)g.chest.rotation.y=0;
+      if(a>=.8&&a<2.7){
+        const hit1=Math.max(0,punch(.8)),hit2=Math.max(0,punch(1.65));
+        g.arms[0].rotation.x=-.4-hit1*1.8;g.arms[1].rotation.x=-.4-hit2*2;
+        if(g.chest)g.chest.rotation.y=(hit1-hit2)*.4;
+        boss.rotation.z=Math.sin(a*18)*.08*(hit1+hit2);
+      }
+      if(a>=2.7&&a<4.3){
+        const u=(a-2.7)/1.6,theta=-Math.PI*2*smooth(u),lift=Math.sin(Math.PI*u)*1.6;
+        hero.position.y+=lift+1.4*(1-Math.cos(theta));
+        hero.position.z-=1.4*Math.sin(theta);
+        hero.rotation.x=theta;
+        const tuck=Math.sin(Math.PI*u);
+        for(const leg of g.thighs||[])leg.rotation.x=-1.2*tuck;
+        for(const leg of g.knees||[])leg.rotation.x=1.8*tuck;
+        for(const arm of g.arms||[])arm.rotation.x=-.4-tuck;
+      }
+      if(a>=4.3&&a<5){
+        const settle=1-smooth((a-4.3)/.7);
+        hero.position.y-=settle*.3;
+        for(const leg of g.thighs||[])leg.rotation.x=-settle*.7;
+        for(const leg of g.knees||[])leg.rotation.x=settle*1.1;
+        for(const arm of g.arms||[])arm.rotation.x=-1.5*(1-settle);
+      }
+    } else if(a>=2.7&&a<4.3){
+      const u=(a-2.7)/1.6;hero.position.y+=Math.sin(Math.PI*u)*1.4;
+      hero.rotation.x=-Math.PI*2*smooth(u);
+    }
+    if(a>=4.3){
+      const fall=smooth((a-4.3)/.85);
+      boss.rotation.z=-Math.PI*.48*fall;boss.position.y-=fall*.55;
+      boss.position.z-=fall*1.5;
+    }
+    if(!finalComboRing){
+      finalComboRing=new THREE.Mesh(new THREE.RingGeometry(.65,1,48),new THREE.MeshBasicMaterial({color:0xffcb68,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false}));
+      finalComboRing.rotation.x=-Math.PI/2;scene.add(finalComboRing);
+    }
+    const burst=(a-4.3)/.7;
+    finalComboRing.visible=burst>=0&&burst<1;
+    if(finalComboRing.visible){finalComboRing.position.copy(center);finalComboRing.position.y+=.05;finalComboRing.scale.setScalar(1+burst*7);finalComboRing.material.opacity=(1-burst)*.9;}
+    const focus=center.clone().add(new THREE.Vector3(0,1.2,1));
+    const orbit=a<2.7?-.7+a*.55:a<4.3?.8+(a-2.7)*1.3:2.88;
+    const distance=a>=6?5+smooth((a-6)/3)*6:a>=4.3?5:4.6;
+    const desired=focus.clone().add(new THREE.Vector3(Math.sin(orbit)*distance,a>=6?3.4:1.2,Math.cos(orbit)*distance));
+    camera.position.lerp(desired,1-Math.exp(-dt*12));camera.lookAt(focus);
+  }
+
   function frame(now) {
     requestAnimationFrame(frame);
     const dt = Math.min(.045, (now - lastFrame) / 1000); lastFrame = now;
@@ -1731,6 +1797,7 @@
 
     window.updateVillageClueCinematic?.(THREE,state,camera,rigs);
     for(const actor of rigs.values())window.stabilizeCharacterPose?.(actor);
+    renderFinalCombo(state,camera,rigs,dt);
     renderer.render(scene, camera);
   }
   requestAnimationFrame(frame);
