@@ -2,14 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
-<link rel="preload" href="assets/ecal-model.glb" as="fetch" crossorigin="anonymous" fetchpriority="high">
-<link rel="preload" href="assets/dark-armored-warrior.glb" as="fetch" crossorigin="anonymous" fetchpriority="high">
-<link rel="preload" href="assets/hammer-creature.glb" as="fetch" crossorigin="anonymous" fetchpriority="low">
 <meta name="theme-color" content="#090e18"><title>Heroic Showdown</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css"><link rel="stylesheet" href="hero.css">
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
-<script src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
+<script defer src="https://unpkg.com/peerjs@1.5.5/dist/peerjs.min.js"></script>
 <link rel="stylesheet" href="ipad.css"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Heroic Showdown"></head>
 <body>
   <section id="openingIntro" class="opening-intro" role="dialog" aria-modal="true" aria-label="Ecal and Dark Armored cinematic" tabindex="-1" hidden>
@@ -57,57 +54,57 @@
   <audio id="selectionMusic" src="assets/hero-selection.m4a" preload="auto" autoplay loop></audio>
   <audio id="riseUpMusic" src="assets/red-dawn-return-intro.m4a" preload="metadata" loop></audio>
   <audio id="levelOneMusic" src="assets/level-one-my-song-3.m4a" preload="auto" loop></audio>
-  <script src="assets/opening-canyon.js"></script>
-  <script src="assets/final-sky-data.js"></script>
-  <script src="final-realm.js?v=city-only-3"></script>
-  <script src="opening-split.js?v=1"></script>
-  <script src="opening-intro.js?v=rift-collusion-1"></script>
-  <script src="red-dawn-uppercut.js?v=getaway-5"></script>
-<script src="ashen-transition.js?v=getaway-2"></script>
-  <script src="warehouse.js"></script>
-  <script src="meteor-level.js?v=contest-level12-1"></script>
-  <script src="snow-street.js?v=contest-level12-1"></script>
-  <script src="assets/fire-texture-data.js"></script>
-  <script src="animated-fire.js?v=contest-level12-1"></script>
-  <script src="cinematic-backgrounds.js"></script>
-  <script src="assets/travel-textures.js"></script>
-  <script src="assets/frozen-collision.js"></script>
-  <script src="frozen-landscape.js?v=contest-renderer-fix-9"></script>
-  <script src="burning-city.js"></script>
-  <script src="assets/home-evidence-data.js?v=contest-evidence-2"></script>
-<script src="assets/level3-addon-photos.js"></script>
-<script src="assets/village-night-photos.js"></script>
-<script src="village-water.js"></script>
-<script src="assets/village-photo-materials.js"></script>
-<script src="assets/village-deck-photos.js"></script>
-<script src="village-photo-effects.js"></script>
-<script src="village-warm-materials.js"></script>
-<script src="village-timber.js"></script>
-<script src="village-photo-skin.js"></script>
-<script src="village-interiors.js"></script>
-<script src="assets/village-scenery-data.js"></script>
-<script src="village-life.js"></script>
-<script src="village-endless-deck.js"></script>
-<script src="home-village.js?v=contest-evidence-2"></script>
-<script src="assets/level3-terrain.js"></script>
-<script src="village-people.js?v=flat-ground-14"></script>
-<script src="model-village.js?v=village-smooth-9"></script>
-<script src="travel-world.js?v=contest-top-surface-8"></script>
+  <script defer src="assets/opening-canyon.js"></script>
+  <script defer src="assets/final-sky-data.js"></script>
+  <script defer src="final-realm.js?v=city-only-3"></script>
+  <script defer src="opening-split.js?v=1"></script>
+  <script defer src="opening-intro.js?v=rift-startup-2"></script>
+  <script defer src="red-dawn-uppercut.js?v=getaway-5"></script>
+<script defer src="ashen-transition.js?v=getaway-2"></script>
+  <script defer src="warehouse.js"></script>
+  <script defer src="meteor-level.js?v=contest-level12-1"></script>
+  <script defer src="snow-street.js?v=contest-level12-1"></script>
+  <script defer src="assets/fire-texture-data.js"></script>
+  <script defer src="animated-fire.js?v=contest-level12-1"></script>
+  <script defer src="cinematic-backgrounds.js"></script>
+  <script defer src="assets/travel-textures.js"></script>
+  <script defer src="assets/frozen-collision.js"></script>
+  <script defer src="frozen-landscape.js?v=contest-renderer-fix-9"></script>
+  <script defer src="burning-city.js"></script>
+  <script defer src="assets/home-evidence-data.js?v=contest-evidence-2"></script>
+<script defer src="assets/level3-addon-photos.js"></script>
+<script defer src="assets/village-night-photos.js"></script>
+<script defer src="village-water.js"></script>
+<script defer src="assets/village-photo-materials.js"></script>
+<script defer src="assets/village-deck-photos.js"></script>
+<script defer src="village-photo-effects.js"></script>
+<script defer src="village-warm-materials.js"></script>
+<script defer src="village-timber.js"></script>
+<script defer src="village-photo-skin.js"></script>
+<script defer src="village-interiors.js"></script>
+<script defer src="assets/village-scenery-data.js"></script>
+<script defer src="village-life.js"></script>
+<script defer src="village-endless-deck.js"></script>
+<script defer src="home-village.js?v=contest-evidence-2"></script>
+<script defer src="assets/level3-terrain.js"></script>
+<script defer src="village-people.js?v=flat-ground-14"></script>
+<script defer src="model-village.js?v=village-smooth-9"></script>
+<script defer src="travel-world.js?v=contest-top-surface-8"></script>
   <script defer src="assets/finnew-model-data.js?v=imported-fin-2"></script>
-<script src="hero-ground.js"></script>
-  <script src="foot-contact.js?v=steady-ground-4"></script>
-  <script src="foot-plant.js?v=smooth-2"></script>
-  <script src="ecal-character.js"></script>
-  <script src="meteor-hazards.js"></script>
-  <script src="assets/final-explosion-data.js"></script>
-  <script src="dark-boss.js"></script>
-  <script src="misfit-combat.js?v=contest-terrain-api-7"></script>
-  <script src="frost-intro.js?v=disabled-cleanup-4"></script>
-  <script src="character-pose-safety.js?v=3"></script>
-<script src="stunt-performance.js?v=2"></script>
-  <script src="combat-performance.js?v=smooth-2"></script>
-  <script src="fin-impact.js?v=three-heroes-2"></script>
-  <script src="village-nature.js?v=1"></script>
-  <script src="clue-cinematic.js?v=clear-faces-9"></script>
-<script src="game.js?v=fantasy-preload-2"></script>
+<script defer src="hero-ground.js"></script>
+  <script defer src="foot-contact.js?v=steady-ground-4"></script>
+  <script defer src="foot-plant.js?v=smooth-2"></script>
+  <script defer src="ecal-character.js"></script>
+  <script defer src="meteor-hazards.js"></script>
+  <script defer src="assets/final-explosion-data.js"></script>
+  <script defer src="dark-boss.js"></script>
+  <script defer src="misfit-combat.js?v=contest-terrain-api-7"></script>
+  <script defer src="frost-intro.js?v=disabled-cleanup-4"></script>
+  <script defer src="character-pose-safety.js?v=3"></script>
+<script defer src="stunt-performance.js?v=2"></script>
+  <script defer src="combat-performance.js?v=smooth-2"></script>
+  <script defer src="fin-impact.js?v=three-heroes-2"></script>
+  <script defer src="village-nature.js?v=1"></script>
+  <script defer src="clue-cinematic.js?v=clear-faces-9"></script>
+<script defer src="game.js?v=startup-responsive-1"></script>
 </body></html>
