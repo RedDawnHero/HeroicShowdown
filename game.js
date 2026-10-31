@@ -37,6 +37,8 @@
   const musicToggle = $('#musicToggle'), introMusicToggle = $('#introMusicToggle'), selectionMusicToggle = $('#selectionMusicToggle');
   const musicTracks = [levelMusic, introMusic, selectionMusic], musicButtons = [musicToggle, introMusicToggle, selectionMusicToggle];
   selectionMusic.loop = true;
+  levelMusic.loop = true;
+  const mutedTracks = new Map();
   musicTracks.forEach(track => { track.volume = .45; });
   let musicMuted = false, musicBlocked = false, musicStarting = null, musicTrack = null;
   function levelMusicActive() {
@@ -51,9 +53,9 @@
   function updateMusicButton() {
     musicButtons.forEach(button => {
       const label = button === selectionMusicToggle ? 'hero selection music' : button === introMusicToggle ? 'Rise Up music' : 'Level 1 music';
-      const showPlayPrompt = button !== selectionMusicToggle && musicBlocked;
+      const showPlayPrompt = button === introMusicToggle && musicBlocked;
       button.textContent = showPlayPrompt && !musicMuted ? '▶ PLAY MUSIC' : musicMuted ? '♫ MUSIC OFF' : '♫ MUSIC ON';
-      button.setAttribute('aria-pressed', String(!musicMuted && (button === selectionMusicToggle || !musicBlocked)));
+      button.setAttribute('aria-pressed', String(!musicMuted && (button !== introMusicToggle || !musicBlocked)));
       button.setAttribute('aria-label', showPlayPrompt && !musicMuted ? 'Play ' + label : musicMuted ? 'Turn on ' + label : 'Mute ' + label);
     });
   }
@@ -68,6 +70,7 @@
     });
     if (musicTrack !== nextTrack) {
       musicTrack = nextTrack;
+      musicMuted = mutedTracks.get(nextTrack) || false;
       musicStarting = null;
       musicBlocked = false;
     }
@@ -122,6 +125,7 @@
   musicButtons.forEach(button => button.addEventListener('click', () => {
     const wasMuted = musicMuted;
     if (button === selectionMusicToggle || !musicBlocked || musicMuted) musicMuted = !musicMuted;
+    if (musicTrack) mutedTracks.set(musicTrack, musicMuted);
     syncLevelMusic(true);
     if (button === selectionMusicToggle && !wasMuted && musicMuted) playSelectionMuteEffect();
   }));
