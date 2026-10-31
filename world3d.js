@@ -963,7 +963,24 @@
     scene.add(root); rigs.set(key, root); attachCharacterModel(root, kind); return root;
   }
   function rigFor(key, kind) { let r = rigs.get(key); if (r && r.userData.kind !== kind) { scene.remove(r); rigs.delete(key); r = null; } if (!r) r = makeRig(kind, key); return r; }
-  window.createOpeningActor=(kind,key)=>{const actor=makeRig(kind,key);rigs.delete(key);return actor;};
+  const openingActors = new Map();
+  function prepareOpeningActor(kind) {
+    if (!openingActors.has(kind)) {
+      const key = 'prepared-opening-' + kind;
+      const actor = makeRig(kind, key);
+      rigs.delete(key);
+      actor.visible = false;
+      openingActors.set(kind, actor);
+    }
+    return openingActors.get(kind);
+  }
+  window.createOpeningActor=(kind,key)=>{
+    const actor = openingActors.get(kind) || makeRig(kind,key);
+    openingActors.delete(kind);
+    rigs.delete(key);
+    actor.visible = true;
+    return actor;
+  };
   function heroWalkPose(phase, amount, running) {
     const weight = THREE.MathUtils.clamp(amount, 0, 1), swing = Math.sin(phase);
     const lift = Math.pow(Math.max(0, Math.cos(phase)), 1.5) * weight;
@@ -1717,5 +1734,8 @@
     renderer.render(scene, camera);
   }
   requestAnimationFrame(frame);
+  // Build the opening cast while the player is on the menu, using the same model cache.
+  prepareOpeningActor('ecal');
+  prepareOpeningActor('darkwarrior');
   window.dispatchEvent(new Event('heroic-3d-ready'));
 })();
