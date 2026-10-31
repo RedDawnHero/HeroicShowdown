@@ -295,7 +295,10 @@
     ashen: 'assets/mr-misfit-rigged.glb',
     darkwarrior: 'assets/dark-armored-warrior.glb'
   };
-  const characterModelLoads = new Map();
+  const characterModelLoads = new Map(), characterModelStatus = new Map();
+  const heroLoadingLabel=document.createElement('div');
+  heroLoadingLabel.style.cssText='position:absolute;top:12px;left:12px;z-index:15;background:#101b2ee6;color:#fff2ca;padding:8px 12px;border-radius:6px;font:600 12px sans-serif;pointer-events:none';
+  heroLoadingLabel.hidden=true;wrap.appendChild(heroLoadingLabel);
   window.loadFinalCity=()=>{if(!characterModelLoads.has('finalcity'))characterModelLoads.set('finalcity',loadPlayerModel('assets/finalcity-model.glb','finalcity'));return characterModelLoads.get('finalcity');};
   const frostCastNotice=document.createElement('div');frostCastNotice.hidden=true;
   frostCastNotice.style.cssText='position:absolute;left:20px;top:70px;z-index:30;background:#102235ee;color:white;padding:14px;border-radius:8px';
@@ -427,10 +430,12 @@
     });
   }
   function loadPlayerModel(url,kind) {
+    characterModelStatus.set(kind,'loading');
     return new Promise(resolve=>{
-      const fail=error=>{console.warn('Character model could not be loaded:',url,error);window.heroModelLoadError?.('Unable to load '+kind+' model.');resolve(null);};
+      const ready=scene=>{characterModelStatus.set(kind,'ready');resolve(scene);};
+      const fail=error=>{characterModelStatus.set(kind,'error');console.warn('Character model could not be loaded:',url,error);window.heroModelLoadError?.('Unable to load '+kind+' model.');resolve(null);};
       if(location.protocol==='file:'){
-        const parseEmbedded=()=>{try{const raw=atob(window.heroModelData[kind]),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);delete window.heroModelData[kind];modelLoader.parse(bytes.buffer,'',gltf=>resolve(gltf.scene),fail);}catch(error){fail(error);}};
+        const parseEmbedded=()=>{try{const raw=atob(window.heroModelData[kind]),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);delete window.heroModelData[kind];modelLoader.parse(bytes.buffer,'',gltf=>ready(gltf.scene),fail);}catch(error){fail(error);}};
         if(window.heroModelData?.[kind]){parseEmbedded();return;}
         const script=document.createElement('script');script.src='assets/'+(kind==='ashen'?'mr-misfit-rigged':kind)+'-model-data.js'+(kind==='finnew'?'?v=imported-fin-2':'');
         script.onerror=fail;script.onload=()=>{parseEmbedded();script.remove();};document.head.appendChild(script);
@@ -440,7 +445,7 @@
         let attempts=0;
         const tryLoad=()=>{
           const target=attempts ? url+(url.includes('?')?'&':'?')+'model-retry='+attempts : url;
-          modelLoader.load(target,gltf=>resolve(gltf.scene),undefined,error=>{
+          modelLoader.load(target,gltf=>ready(gltf.scene),undefined,error=>{
             attempts++;
             if(attempts<3){setTimeout(tryLoad,attempts*1100);return;}
             fail(error);
@@ -450,6 +455,12 @@
       }
     });
   }
+  window.preloadPlayerHero = hero => {
+    const kind = ({guardian:'golden',wildclaw:'wildclaw',ecal:'ecal',finnew:'finnew',lizard:'lizard'})[hero];
+    if(!kind || !modelLoader) return;
+    if(!characterModelLoads.has(kind)) characterModelLoads.set(kind,loadPlayerModel(characterModelFiles[kind],kind));
+    return characterModelLoads.get(kind);
+  };
   function cloneSkinnedCharacter(source) {
     const clone=source.clone(true),originals=[],copies=[],mapping=new Map();
     source.traverse(node=>originals.push(node));clone.traverse(node=>copies.push(node));
@@ -1548,6 +1559,7 @@
     if(!state||state.phase!=='game'||state.round!==3)window.updateVillageClueCinematic?.(THREE,state,camera,rigs);
     frostCastNotice.hidden=!(state?.phase==='game'&&state.round===2&&state.finale&&!window.frostFinaleActorsReady(state.finale));
     if (!state || state.phase !== 'game' || state.intro) {
+      heroLoadingLabel.hidden=true;
       finalRealm?.hide();window.hideFrostIntro?.();darkPresentation?.hide();ashenPortal?.hide();window.heroTravelProjection=null;window.heroTravelUnproject=null;if(travelWorld)travelWorld.hide();wrap.classList.remove('playing3d'); canvas.style.visibility = 'hidden'; backdropCanvas.style.visibility = 'hidden'; details.style.visibility='hidden'; return;
     }
     details.style.visibility='visible'; canvas.style.visibility = 'visible'; wrap.classList.add('playing3d');
@@ -1798,6 +1810,10 @@
     window.updateVillageClueCinematic?.(THREE,state,camera,rigs);
     for(const actor of rigs.values())window.stabilizeCharacterPose?.(actor);
     renderFinalCombo(state,camera,rigs,dt);
+    const playerKind=({guardian:'golden',wildclaw:'wildclaw',ecal:'ecal',finnew:'finnew',lizard:'lizard'})[local.hero];
+    const heroName=({guardian:'Red Dawn',wildclaw:'Wildclaw',ecal:'Ecal',finnew:'Fin New',lizard:'Lizard Warrior'})[local.hero]||'Your hero';
+    heroLoadingLabel.hidden=!!localRig?.userData.glbModel||!!state.finalCombo;
+    heroLoadingLabel.textContent=characterModelStatus.get(playerKind)==='error'?heroName+' model unavailable. Reload to retry.':'Preparing '+heroName+'…';
     renderer.render(scene, camera);
   }
   requestAnimationFrame(frame);
