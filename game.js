@@ -337,7 +337,7 @@
   const skeletonWithDepth=drawSkeleton;drawSkeleton=function(g){const me=state?.players[myId==='host'?'host':myId]||state?.players.host,depth=me?Math.max(.72,Math.min(1.3,.94+(g.y-me.y)*.00065)):1;ctx.save();ctx.translate(g.x,g.y);ctx.scale(depth,depth);skeletonWithDepth({...g,x:0,y:0});ctx.restore();};
   // Keep the existing networked game state authoritative while rendering its actors in a true 3D scene.
   const previousAct = act;
-  act = function(p, kind) { if (kind === 'helmet') { p.helmet = !p.helmet; p.action = 'helmet'; p.actionTime = .8; say(p.helmet ? 'MASK ON · LASER READY' : 'MASK REMOVED'); const maskLabel = $('[data-action=\"helmet\"] small'); if (maskLabel) maskLabel.textContent = p.helmet ? 'REMOVE MASK' : 'PUT ON MASK'; broadcast(); return; } previousAct(p, kind); };
+  act = function(p, kind) { if (kind === 'helmet') { const toggleAt=performance.now();if(toggleAt-(p.lastHelmetToggle??-Infinity)<350)return;p.lastHelmetToggle=toggleAt;p.helmet = !p.helmet; p.action = 'helmet'; p.actionTime = .8; say(p.helmet ? 'MASK ON · LASER READY' : 'MASK REMOVED'); const maskLabel = $('[data-action=\"helmet\"] small'); if (maskLabel) maskLabel.textContent = p.helmet ? 'REMOVE MASK' : 'PUT ON MASK'; broadcast(); return; } previousAct(p, kind); };
   function canClimbAt(p){return (p.x<245&&p.y>150&&p.y<430)||(p.x>810&&p.y>145&&p.y<525)||(p.y<150&&p.x>285&&p.x<735);}
   const actionBeforeClimb=act;
   act=function(p,kind){if(kind==='climb'){if(p.hero!=='wildclaw'){say('Only Wildclaw can climb buildings');return;}if(p.climbActive){p.climbActive=false;p.climbing=false;say('WILDCLAW DROPS DOWN');}else if(canClimbAt(p)){p.climbActive=true;p.climbing=true;p.climbHeight=p.climbHeight||0;say('WILDCLAW CLIMBS! MOVE UP TO SCALE THE WALL');}else say('MOVE BESIDE A BUILDING FIRST');$('#abilityGrid [data-action=climb]')?.classList.toggle('pressed',!!p.climbActive);broadcast();return;}actionBeforeClimb(p,kind);};
@@ -917,7 +917,7 @@
   modelNotice.style.cssText='position:fixed;left:20px;bottom:20px;z-index:30000;max-width:440px;padding:16px;background:#14202ff5;color:#fff;border:1px solid #efbd63;border-radius:8px;font:15px sans-serif';
   document.body.appendChild(modelNotice);
   window.heroModelLoadError=(message)=>{modelNotice.hidden=false;modelNotice.textContent=message+' Your saved models have not been removed. Reload the game to retry.';};
-  const load3DWorld = () => { const world = document.createElement('script'); world.src = 'world3d.js?v=preload-selected-hero-2';world.onerror=()=>window.heroModelLoadError('The 3D game script could not load.'); document.body.appendChild(world); };
+  const load3DWorld = () => { const world = document.createElement('script'); world.src = 'world3d.js?v=helmet-stable-1';world.onerror=()=>window.heroModelLoadError('The 3D game script could not load.'); document.body.appendChild(world); };
   window.addEventListener('error',event=>{if(/world3d|model-village|village-radio/.test(event.filename||''))window.heroModelLoadError('3D startup error: '+event.message);});
   const prepare3DWorld = (attempt=0) => {
     Promise.all([import('three'), import('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js')]).then(([THREE, loaders]) => {

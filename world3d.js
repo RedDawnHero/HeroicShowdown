@@ -383,8 +383,8 @@
       const spine = addBone('spine', pelvis, 0, height * .61, 0);
       const chest = addBone('chest', spine, 0, height * .74, 0);
       const neck = addBone('neck', chest, 0, height * .83, 0);
-      addBone('head', neck, 0, height * .89, 0);
-      const rig = { arms: [], forearms: [], thighs: [], knees: [], shins: [], feet: [], chest };
+      const head = addBone('head', neck, 0, height * .89, 0);
+      const rig = { arms: [], forearms: [], thighs: [], knees: [], shins: [], feet: [], pelvis, spine, chest, neck, head };
       for (const side of [-1, 1]) {
         const suffix = side < 0 ? 'L' : 'R', shoulderX = side * width * .28, elbowX = side * width * .38, handX = side * width * .42;
         const upper = addBone('upperArm' + suffix, chest, shoulderX, height * .765, 0);
@@ -421,7 +421,7 @@
         const sourceMaterials = Array.isArray(node.material) ? node.material : [node.material];
         const materials = sourceMaterials.map(material => { const clone = material.clone(); clone.side = THREE.DoubleSide; return clone; });
         const mesh = new THREE.SkinnedMesh(geometry, Array.isArray(node.material) ? materials : materials[0]);
-        mesh.name = node.name || 'Red Dawn helmet-on mesh'; mesh.castShadow = true; mesh.receiveShadow = true; skinnedRoot.add(mesh); rigMeshes.push(mesh);
+        mesh.name = node.name || 'Red Dawn helmet-on mesh'; mesh.castShadow = true; mesh.receiveShadow = true; mesh.frustumCulled = false; skinnedRoot.add(mesh); rigMeshes.push(mesh);
       });
       root.remove(model); root.updateMatrixWorld(true); skeleton.calculateInverses();
       rigMeshes.forEach(mesh => mesh.bind(skeleton, mesh.matrixWorld));
@@ -458,6 +458,10 @@
   window.preloadPlayerHero = hero => {
     const kind = ({guardian:'golden',wildclaw:'wildclaw',ecal:'ecal',finnew:'finnew',lizard:'lizard'})[hero];
     if(!kind || !modelLoader) return;
+    if(kind==='golden'){
+      const helmetUrl='assets/helmeted-red-dawn.glb';
+      if(!helmetModelLoads.has(helmetUrl))helmetModelLoads.set(helmetUrl,loadPlayerModel(helmetUrl,'helmeted'));
+    }
     if(!characterModelLoads.has(kind)) characterModelLoads.set(kind,loadPlayerModel(characterModelFiles[kind],kind));
     return characterModelLoads.get(kind);
   };
@@ -554,12 +558,7 @@
         const tail3=addBone('tail3',tail2,-width*.29,height*.075,-depth*.42);
         rigParts.tail=[tail0,tail1,tail2,tail3];
       }
-      if (kind === 'golden') {
-        const home = new THREE.Vector3(0, height * .61, depth * .42);
-        const face = new THREE.Vector3(0, height * .88, depth * .22);
-        const helmetBone = addBone('heldHelmet', null, home.x, home.y, home.z);
-        rigParts.mask = { bone: helmetBone, home, face };
-      }
+      // Use the dedicated helmet-on model; do not pull guessed chest vertices onto the face.
       const skeleton = new THREE.Skeleton(bones);
       const rigMeshes = [];
       const cachedMeshes=skinGeometryCache.get(kind);let meshIndex=0;
@@ -574,8 +573,6 @@
         const indices = new Uint16Array(count * 4), weights = new Float32Array(count * 4);
         for (let i = 0; i < count; i++) {
           const x = position.getX(i), y = position.getY(i), ax = Math.abs(x), xn = ax / width, yn = y / height;
-          const maskVertex = kind === 'golden' && yn > .53 && yn < .72 && ax < width * .16 && position.getZ(i) / depth + .5 > .80;
-          if (maskVertex) { indices[i * 4] = boneIndex.get('heldHelmet'); weights[i * 4] = 1; continue; }
           const rearDepth = position.getZ(i) / depth + .5;
           // Pin only the rear hanging panels to the neck so punches cannot pull
           // cape vertices along with the arm bones.
@@ -1493,7 +1490,7 @@
     const hero=rigs.get(combo.playerId),boss=rigs.get('ashen-king');
     if(!hero||!boss)return;
     const a=combo.age, smooth=(x)=>{x=Math.max(0,Math.min(1,x));return x*x*(3-2*x);};
-    const g=hero.userData.glbRig;
+    const g=hero.userData.helmetedModel?.visible ? hero.userData.helmetedRig : hero.userData.glbRig;
     const center=boss.position.clone();
     hero.position.copy(center).add(new THREE.Vector3(0,0,2.15));
     hero.rotation.set(0,Math.PI,0);
