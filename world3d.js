@@ -1737,5 +1737,9 @@
   // Build the opening cast while the player is on the menu, using the same model cache.
   prepareOpeningActor('ecal');
   prepareOpeningActor('darkwarrior');
+  // Fetch the fantasy hammer enemy on the menu rather than waiting for combat.
+  if (!characterModelLoads.has('hammerer')) {
+    characterModelLoads.set('hammerer', loadPlayerModel(characterModelFiles.hammerer, 'hammerer'));
+  }
   window.dispatchEvent(new Event('heroic-3d-ready'));
 })();
