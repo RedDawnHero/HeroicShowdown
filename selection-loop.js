@@ -1,6 +1,9 @@
 (() => {
   const music = document.querySelector('#selectionMusic');
   if (!music) return;
+  music.defaultPlaybackRate = 1.08;
+  music.playbackRate = 1.08;
+  music.preservesPitch = true;
   // The uploaded recording fades out here, then contains about 5.6s of silence.
   const loopEnd = 41.42;
   let timer;
