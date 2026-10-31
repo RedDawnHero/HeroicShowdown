@@ -1718,4 +1718,5 @@
     renderer.render(scene, camera);
   }
   requestAnimationFrame(frame);
+  window.dispatchEvent(new Event('heroic-3d-ready'));
 })();
