@@ -491,14 +491,14 @@
   function attachCharacterModel(root, kind) {
     const url = characterModelFiles[kind];
     if (!url || !modelLoader) return;
-    // Hide built-in placeholder rigs for both imported player models while their GLBs load.
-    if ((kind === 'finalcreature' || kind === 'finnew' || kind === 'golden' || kind === 'wildclaw' || kind === 'lizard' || kind === 'ecal' || kind === 'darkwarrior') && root.userData.body) root.userData.body.visible = false;
+    // Keep the hero visible until the detailed model has finished attaching.
+    if (root.userData.body) root.userData.body.visible = true;
     // Mr. Misfit's detailed model is ~89 MB: show his procedural rig until loading finishes.
     if (!characterModelLoads.has(kind)) {
       characterModelLoads.set(kind, loadPlayerModel(url,kind));
     }
     characterModelLoads.get(kind).then(sourceModel => {
-      if(!sourceModel){if(root.userData.body)root.userData.body.visible=kind!=='finnew';return;}
+      if(!sourceModel){if(root.userData.body)root.userData.body.visible=true;return;}
       if (!root.parent || root.userData.kind !== kind || root.userData.glbModel) return;
       if(kind==='ashen'&&sourceModel.getObjectByName('pelvis')){attachMisfitRig(root,sourceModel);return;}
       const model = sourceModel.clone(true);
