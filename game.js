@@ -1163,8 +1163,8 @@
   const finisherButton = document.createElement('button');
   finisherButton.id = 'finalFinisher'; finisherButton.className = 'btn btn-gold';
   finisherButton.type = 'button'; finisherButton.textContent = 'F · FINAL FINISHER';
-  finisherButton.style.cssText = 'position:absolute;bottom:22px;left:50%;transform:translateX(-50%);z-index:20;white-space:nowrap';
-  finisherButton.hidden = true; $('.arena-wrap').appendChild(finisherButton);
+  finisherButton.style.cssText = 'display:block;margin:10px auto;white-space:nowrap';
+  finisherButton.hidden = true; $('#game').insertBefore(finisherButton,$('.game-bottom'));
   const endingCaption = document.createElement('div');
   endingCaption.setAttribute('role','status');
   endingCaption.style.cssText = 'position:absolute;left:8%;right:8%;bottom:10%;text-align:center;color:#fff2c9;font:800 clamp(18px,4vw,30px) sans-serif;text-shadow:0 2px 10px #000;z-index:21;pointer-events:none';
