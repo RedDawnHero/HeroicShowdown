@@ -92,9 +92,39 @@
       updateMusicButton();
     });
   }
+  function playSelectionMuteEffect() {
+    try {
+      unlockAudio();
+      if (!audioCtx) return;
+      const t = audioCtx.currentTime, duration = .85;
+      const master = audioCtx.createGain();
+      master.gain.setValueAtTime(.001, t);
+      master.gain.exponentialRampToValueAtTime(.18, t + .025);
+      master.gain.exponentialRampToValueAtTime(.001, t + duration);
+      master.connect(audioCtx.destination);
+      // A descending power chord and sub-bass make a short heroic power-down sting.
+      const voices = [[130.81, 32.7, 'sine'], [261.63, 65.41, 'triangle'], [392, 98, 'triangle']];
+      let remaining = voices.length;
+      voices.forEach(([start, end, type]) => {
+        const voice = audioCtx.createOscillator();
+        voice.type = type;
+        voice.frequency.setValueAtTime(start, t);
+        voice.frequency.exponentialRampToValueAtTime(end, t + duration);
+        voice.connect(master);
+        voice.onended = () => {
+          voice.disconnect();
+          if (--remaining === 0) master.disconnect();
+        };
+        voice.start(t);
+        voice.stop(t + duration);
+      });
+    } catch {}
+  }
   musicButtons.forEach(button => button.addEventListener('click', () => {
+    const wasMuted = musicMuted;
     if (button === selectionMusicToggle || !musicBlocked || musicMuted) musicMuted = !musicMuted;
     syncLevelMusic(true);
+    if (button === selectionMusicToggle && !wasMuted && musicMuted) playSelectionMuteEffect();
   }));
   document.addEventListener('pointerdown', event => { if (!musicButtons.some(button => button.contains(event.target))) syncLevelMusic(true); });
   document.addEventListener('keydown', event => { if (!event.repeat && !musicButtons.some(button => button.contains(event.target))) syncLevelMusic(true); });
