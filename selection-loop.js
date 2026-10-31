@@ -4,8 +4,8 @@
   music.defaultPlaybackRate = 1.08;
   music.playbackRate = 1.08;
   music.preservesPitch = true;
-  // The uploaded recording fades out here, then contains about 5.6s of silence.
-  const loopEnd = 41.42;
+  // Restart just after the final crash attack, skipping its long decay and outro.
+  const loopEnd = 28.2;
   let timer;
   function scheduleLoop() {
     clearTimeout(timer);
