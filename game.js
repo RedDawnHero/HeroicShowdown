@@ -52,9 +52,10 @@
   function updateMusicButton() {
     musicButtons.forEach(button => {
       const label = button === selectionMusicToggle ? 'hero selection music' : button === introMusicToggle ? 'Rise Up music' : 'Level 1 music';
-      button.textContent = musicBlocked && !musicMuted ? '▶ PLAY MUSIC' : musicMuted ? '♫ MUSIC OFF' : '♫ MUSIC ON';
-      button.setAttribute('aria-pressed', String(!musicMuted && !musicBlocked));
-      button.setAttribute('aria-label', musicBlocked && !musicMuted ? 'Play ' + label : musicMuted ? 'Turn on ' + label : 'Mute ' + label);
+      const showPlayPrompt = button !== selectionMusicToggle && musicBlocked;
+      button.textContent = showPlayPrompt && !musicMuted ? '▶ PLAY MUSIC' : musicMuted ? '♫ MUSIC OFF' : '♫ MUSIC ON';
+      button.setAttribute('aria-pressed', String(!musicMuted && (button === selectionMusicToggle || !musicBlocked)));
+      button.setAttribute('aria-label', showPlayPrompt && !musicMuted ? 'Play ' + label : musicMuted ? 'Turn on ' + label : 'Mute ' + label);
     });
   }
   function syncLevelMusic(fromGesture = false) {
@@ -92,7 +93,7 @@
     });
   }
   musicButtons.forEach(button => button.addEventListener('click', () => {
-    if (!musicBlocked || musicMuted) musicMuted = !musicMuted;
+    if (button === selectionMusicToggle || !musicBlocked || musicMuted) musicMuted = !musicMuted;
     syncLevelMusic(true);
   }));
   document.addEventListener('pointerdown', event => { if (!musicButtons.some(button => button.contains(event.target))) syncLevelMusic(true); });
