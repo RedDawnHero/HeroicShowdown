@@ -9,9 +9,10 @@
  function playSong(){if(!active||!songReady||muted||document.hidden||songPending||songBlocked||!openingSong.paused||openingSong.ended)return;
   songPending=true;const attempt=openingSong.play();Promise.resolve(attempt).then(()=>{if(!active||!songReady||muted||document.hidden)openingSong.pause();}).catch(()=>{songBlocked=true;sound.textContent='ENABLE SOUND';}).finally(()=>{songPending=false;});
  }
- document.addEventListener('visibilitychange',()=>{if(document.hidden)openingSong.pause();else playSong();});
+ document.addEventListener('visibilitychange',()=>{if(document.hidden){openingSong.pause();if(trafficGain)trafficGain.gain.setTargetAtTime(0,audio.currentTime,.02);}else playSong();});
  window.addEventListener('pagehide',stopSong);
  let editedCamera=null,editedLook=null;
+ let trafficGain=null;const trafficSounds=[];
  let active=false,age=0,last=0,raf,renderer,scene,camera,ecal,dark,beam,flash,audio,master,windGain,musicGain,muted=false,delivered=false;
  const traffic=[],walkers=[],dust=[],sparks=[],page=[...document.querySelectorAll('body > header,body > main,body > footer')];let previous=[];
  const ease=(x,a,b)=>{const v=Math.max(0,Math.min(1,(x-a)/(b-a)));return v*v*(3-2*v);};
@@ -20,6 +21,16 @@
   master=audio.createGain();master.gain.value=muted?0:.22;master.connect(audio.destination);
   const buffer=audio.createBuffer(1,audio.sampleRate*3,audio.sampleRate),data=buffer.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*.35;
   const noise=audio.createBufferSource();noise.buffer=buffer;noise.loop=true;const filter=audio.createBiquadFilter();filter.type='lowpass';filter.frequency.value=500;windGain=audio.createGain();windGain.gain.value=.22;noise.connect(filter).connect(windGain).connect(master);noise.start();
+  trafficGain=audio.createGain();trafficGain.gain.value=0;trafficGain.connect(master);
+  for(let i=0;i<3;i++){
+    const pan=audio.createStereoPanner(),gain=audio.createGain(),engine=audio.createOscillator();
+    pan.connect(trafficGain);gain.gain.value=.24;gain.connect(pan);
+    engine.type='triangle';engine.frequency.value=85+i*30;engine.connect(gain);engine.start();
+    const air=audio.createBufferSource(),filter=audio.createBiquadFilter(),airGain=audio.createGain();
+    air.buffer=buffer;air.loop=true;filter.type='bandpass';filter.frequency.value=700+i*200;filter.Q.value=.7;
+    airGain.gain.value=.12;air.connect(filter).connect(airGain).connect(pan);air.start();
+    trafficSounds.push({pan,gain,engine,filter,index:i*8});
+  }
   musicGain=audio.createGain();musicGain.gain.value=0;musicGain.connect(master);
   for(const [i,hz] of [65.41,98,130.81,155.56,196,261.63].entries()){const osc=audio.createOscillator(),gain=audio.createGain();osc.type=i<2?'sine':'triangle';osc.frequency.value=hz;gain.gain.value=.09;osc.connect(gain).connect(musicGain);osc.start();}
  }catch(e){console.warn('Opening audio unavailable',e);}}
@@ -50,7 +61,7 @@
   return true;
  }
  function deliver(){if(delivered)return;delivered=true;window.dispatchEvent(new Event('heroic-opening-finished'));}
- function finish(){if(!active)return;active=false;stopSong();cancelAnimationFrame(raf);deliver();overlay.hidden=true;overlay.style.opacity=1;document.body.classList.remove('opening-intro-active');page.forEach((p,i)=>p.inert=previous[i]);if(master)master.gain.setTargetAtTime(0,audio.currentTime,.2);}
+ function finish(){if(!active)return;active=false;stopSong();cancelAnimationFrame(raf);deliver();overlay.hidden=true;overlay.style.opacity=1;document.body.classList.remove('opening-intro-active');page.forEach((p,i)=>p.inert=previous[i]);if(trafficGain)trafficGain.gain.setTargetAtTime(0,audio.currentTime,.02);if(master)master.gain.setTargetAtTime(0,audio.currentTime,.2);}
  window.playHeroOpeningIntro=()=>{if(active)return;active=true;stopSong();songBlocked=false;delivered=false;age=0;editedCamera=null;editedLook=null;last=performance.now();overlay.hidden=false;overlay.style.opacity=1;curtain.style.opacity=1;prompt.hidden=false;status.textContent='Preparing Ecal’s opening…';previous=page.map(p=>p.inert);page.forEach(p=>p.inert=true);document.body.classList.add('opening-intro-active');overlay.focus();audioStart();window.dispatchEvent(new Event('heroic-opening-started'));raf=requestAnimationFrame(frame);};
  function frame(now){if(!active)return;raf=requestAnimationFrame(frame);const dt=Math.min(.05,(now-last)/1000);last=now;if(document.hidden)return;
   try{if(!setup())return;if(!ecal.userData.glbRig||!dark.userData.glbRig){status.textContent='Loading Ecal and Dark Armored…';return;}
@@ -63,6 +74,17 @@
   progress.value=age/43;curtain.style.opacity=1-ease(age,.25,1.25);if(age>=43){finish();return;}
   if(musicGain)musicGain.gain.value=0;if(windGain)windGain.gain.value=.2+.18*Math.sin(ease(a,6,15)*Math.PI);
   traffic.forEach((v,i)=>{v.position.set(((a*(8+i%4)+i*23)%240)-120,8+(i%6)*9,-10-(i%12)*24);});walkers.forEach((p,i)=>{p.position.set(i%2?10:-10,1,-((i*9+a*(.8+i%3*.2))%330));p.rotation.z=Math.sin(a*5+i)*.03;});dust[0].position.x=Math.sin(a*.04)*8;
+  // Match electric engine sweeps and stereo fly-bys to the visible flying cars.
+  if(trafficGain){
+    trafficGain.gain.setTargetAtTime(.7,audio.currentTime,.05);
+    for(const sound of trafficSounds){
+      const car=traffic[sound.index],x=car.position.x,near=Math.exp(-Math.abs(x)/38);
+      sound.pan.pan.setTargetAtTime(Math.max(-1,Math.min(1,x/80)),audio.currentTime,.05);
+      sound.gain.gain.setTargetAtTime(.04+.32*near,audio.currentTime,.05);
+      sound.engine.frequency.setTargetAtTime(65+sound.index*3+near*95+(x<0?30:-15),audio.currentTime,.06);
+      sound.filter.frequency.setTargetAtTime(450+near*1600,audio.currentTime,.06);
+    }
+  }
   const e=ecal.userData.glbRig,d=dark.userData.glbRig;
   for(const rig of [e,d])for(const key of ['arms','forearms','thighs','knees'])rig[key]?.forEach(b=>b.rotation.set(0,0,0));
   ecal.position.set(0,38.3,-47);ecal.rotation.set(0,Math.PI,0);dark.position.set(0,18.3,-109);dark.rotation.set(0,0,0);dark.scale.setScalar(2);ecal.visible=true;dark.visible=a>=27;beam.visible=false;
