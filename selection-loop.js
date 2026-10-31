@@ -1,8 +1,8 @@
 (() => {
   const music = document.querySelector('#selectionMusic');
   if (!music) return;
-  music.defaultPlaybackRate = 1.08;
-  music.playbackRate = 1.08;
+  music.defaultPlaybackRate = 1;
+  music.playbackRate = 1;
   music.preservesPitch = true;
   // Restart just after the final crash attack, skipping its long decay and outro.
   const loopEnd = 28.2;
