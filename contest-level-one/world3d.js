@@ -235,10 +235,8 @@
   const snowStreet = window.heroBackdrop ? null : window.createSnowStreet?.(THREE);
   const sceneColor = scene.background;
   const dimensionBackdrops = { three: null, four: null, five: null };
-  const backdropLoader = new THREE.TextureLoader();
-  backdropLoader.load('assets/level-one-meteor-impact.jpg', texture => { texture.colorSpace = THREE.SRGBColorSpace; dimensionBackdrops.three = texture; });
-  backdropLoader.load('assets/level-four-future-city.jpg', texture => { texture.colorSpace = THREE.SRGBColorSpace; dimensionBackdrops.four = texture; });
-  backdropLoader.load('assets/level-five-final-city.jpg', texture => { texture.colorSpace = THREE.SRGBColorSpace; dimensionBackdrops.five = texture; });
+  // The contest export intentionally has no later-chapter backdrop photos.
+  // Never request missing assets: Chapter One uses the real meteor environment.
   function coverBackdrop(texture, aspect) {
     if (!texture?.image) return;
     const imageAspect = texture.image.width / texture.image.height;
@@ -297,7 +295,8 @@
     darkwarrior: null // reserved for the full campaign
   };
   const characterModelLoads = new Map();
-  window.loadFinalCity=()=>{if(!characterModelLoads.has('finalcity'))characterModelLoads.set('finalcity',loadPlayerModel('assets/finalcity-model.glb','finalcity'));return characterModelLoads.get('finalcity');};
+  // The final-city 3D asset is not included in the Chapter One edition.
+  window.loadFinalCity=()=>Promise.resolve(null);
   const frostCastNotice=document.createElement('div');frostCastNotice.hidden=true;
   frostCastNotice.style.cssText='position:absolute;left:20px;top:70px;z-index:30;background:#102235ee;color:white;padding:14px;border-radius:8px';
   frostCastNotice.textContent='Preparing Red Dawn and Wildclaw…';wrap.appendChild(frostCastNotice);
@@ -327,6 +326,21 @@
   const villainModelLoads = new Map();
   const helmetModelLoads = new Map();
   const modelLoader = window.GLTFLoader ? new window.GLTFLoader() : null;
+  // Preload the selected real hero model, so the first chapter doesn't rely on
+  // the basic stand-in for the entire time a large GLB downloads.
+  window.heroContestPreloadModels = async hero => {
+    const kind = hero === 'ecal' ? 'ecal' : hero === 'wildclaw' ? 'wildclaw'
+      : hero === 'guardian' ? 'golden' : null;
+    const url = kind && characterModelFiles[kind];
+    if (!modelLoader || !url) return false;
+    if (!characterModelLoads.has(kind))
+      characterModelLoads.set(kind, loadPlayerModel(url, kind));
+    return !!(await characterModelLoads.get(kind));
+  };
+  // Red Dawn is the default hero on the character-select screen.
+  window.heroContestPreloadModels('guardian').catch(error =>
+    console.warn('Optional Chapter One hero preload failed:', error));
+  window.dispatchEvent(new Event('hero-contest-models-ready'));
   function writePlayerSkinWeights(indices, weights, vertex, x, y, width, height, boneIndex) {
     const xn = Math.abs(x) / width, yn = y / height, side = x < 0 ? 'L' : 'R';
     let a = 'pelvis', b = 'spine', blend = 1 - THREE.MathUtils.smoothstep(yn, .51, .61);
@@ -479,15 +493,20 @@
   function attachCharacterModel(root, kind) {
     const url = characterModelFiles[kind];
     if (!url || !modelLoader) return;
-    // Hide built-in placeholder rigs for both imported player models while their GLBs load.
-    if ((kind === 'finalcreature' || kind === 'finnew' || kind === 'golden' || kind === 'wildclaw' || kind === 'lizard' || kind === 'ecal' || kind === 'hammerer' || kind === 'darkwarrior') && root.userData.body) root.userData.body.visible = false;
+    // Keep the basic rig visible until the detailed GLB has loaded successfully.
+    // Hiding it early made characters disappear on slow networks or GLB errors.
     // Mr. Misfit's detailed model is ~89 MB: show his procedural rig until loading finishes.
     if (!characterModelLoads.has(kind)) {
       characterModelLoads.set(kind, loadPlayerModel(url,kind));
     }
     characterModelLoads.get(kind).then(sourceModel => {
-      if(!sourceModel){if(root.userData.body)root.userData.body.visible=kind!=='finnew';return;}
+      if (!sourceModel) {
+        if (root.userData.body) root.userData.body.visible = true;
+        return;
+      }
       if (!root.parent || root.userData.kind !== kind || root.userData.glbModel) return;
+      const beforeImport = new Set(root.children);
+      try {
       if(kind==='ashen'&&sourceModel.getObjectByName('pelvis')){attachMisfitRig(root,sourceModel);return;}
       const model = sourceModel.clone(true);
       const bounds = new THREE.Box3().setFromObject(model);
@@ -630,6 +649,7 @@
         }
         const mesh = new THREE.SkinnedMesh(geometry, material); mesh.name = node.name || kind + '-skin'; mesh.castShadow = true; mesh.receiveShadow = true; skinnedRoot.add(mesh); rigMeshes.push(mesh);
       });
+      if (!rigMeshes.length) throw new Error('GLB has no usable 3D meshes');
       root.updateMatrixWorld(true);
       skeleton.calculateInverses();
       rigMeshes.forEach(mesh => mesh.bind(skeleton, mesh.matrixWorld));
@@ -667,6 +687,21 @@
         root.userData.iceSword = sword; root.userData.swordTrail = trail;
       }
       if (kind === 'golden') attachHelmetedRedDawn(root);
+      } catch (error) {
+        console.error('Detailed character could not be displayed:', kind, error);
+        // Undo a partial import, but preserve the original gameplay rig.
+        for (const child of [...root.children]) if (!beforeImport.has(child)) root.remove(child);
+        if (root.userData.body) {
+          if (!root.userData.body.parent) root.add(root.userData.body);
+          root.userData.body.visible = true;
+        }
+        root.userData.glbModel = null;
+        root.userData.glbRig = null;
+        window.heroModelLoadError?.('Could not display the detailed ' + kind + ' model.');
+      }
+    }).catch(error => {
+      console.error('Chapter One character import error:', kind, error);
+      if (root.userData.body) root.userData.body.visible = true;
     });
   }
   function attachVillainModel(root, kind) {
