@@ -3,13 +3,14 @@
  const video=document.querySelector('#openingVideo');video.removeAttribute('src');video.hidden=true;document.querySelector('#playOpeningIntro').hidden=true;
  const caption=document.createElement('div');caption.style.cssText='position:absolute;bottom:13%;left:8%;right:8%;text-align:center;color:#fff2d5;font:700 clamp(14px,2vw,24px) sans-serif;text-shadow:0 2px 12px #000;pointer-events:none;z-index:3';overlay.appendChild(caption);
  const curtain=document.createElement('div');curtain.style.cssText='position:absolute;inset:0;background:black;pointer-events:none;z-index:2';overlay.appendChild(curtain);
- const openingSong=new Audio('assets/opening-toooonie.m4a');openingSong.preload='none';openingSong.volume=.65;
+ const openingSong=new Audio('assets/opening-rift-collusion.m4a');openingSong.preload='auto';openingSong.volume=.65;
  let songReady=false,songPending=false,songBlocked=false;
  function stopSong(){songReady=false;openingSong.pause();openingSong.currentTime=0;}
  function playSong(){if(!active||!songReady||muted||document.hidden||songPending||songBlocked||!openingSong.paused||openingSong.ended)return;
   songPending=true;const attempt=openingSong.play();Promise.resolve(attempt).then(()=>{if(!active||!songReady||muted||document.hidden)openingSong.pause();}).catch(()=>{songBlocked=true;sound.textContent='ENABLE SOUND';}).finally(()=>{songPending=false;});
  }
  document.addEventListener('visibilitychange',()=>{if(document.hidden)openingSong.pause();else playSong();});
+ window.addEventListener('pagehide',stopSong);
  let editedCamera=null,editedLook=null;
  let active=false,age=0,last=0,raf,renderer,scene,camera,ecal,dark,beam,flash,audio,master,windGain,musicGain,muted=false,delivered=false;
  const traffic=[],walkers=[],dust=[],sparks=[],page=[...document.querySelectorAll('body > header,body > main,body > footer')];let previous=[];
@@ -103,7 +104,7 @@
   const splitCaption=window.openingPortalSplit?.(T,scene,ecal,dark,eye,target,a);if(a>=90){caption.textContent=splitCaption||'';roll=0;curtain.style.opacity=ease(a,130,132);}
   if(!editedCamera){editedCamera=eye.clone();editedLook=target.clone();}
   editedCamera.lerp(eye,1-Math.exp(-dt*12));editedLook.lerp(target,1-Math.exp(-dt*14));
-  camera.position.copy(editedCamera);camera.up.set(0,1,0);camera.lookAt(editedLook);camera.rotateZ(roll);const w=overlay.clientWidth||innerWidth,h=overlay.clientHeight||innerHeight;if(renderer.domElement.width!==Math.floor(w*renderer.getPixelRatio())||renderer.domElement.height!==Math.floor(h*renderer.getPixelRatio()))renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();window.stabilizeCharacterPose?.(ecal);window.stabilizeCharacterPose?.(dark);renderer.render(scene,camera);if(age>.25){songReady=true;playSong();}
+  camera.position.copy(editedCamera);camera.up.set(0,1,0);camera.lookAt(editedLook);camera.rotateZ(roll);const w=overlay.clientWidth||innerWidth,h=overlay.clientHeight||innerHeight;if(renderer.domElement.width!==Math.floor(w*renderer.getPixelRatio())||renderer.domElement.height!==Math.floor(h*renderer.getPixelRatio()))renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();window.stabilizeCharacterPose?.(ecal);window.stabilizeCharacterPose?.(dark);renderer.render(scene,camera);if(!songReady){songReady=true;playSong();}
   }catch(error){stopSong();console.error('Opening cinematic:',error);prompt.hidden=false;status.textContent='The opening could not render. Use Skip Intro to continue.';}
  }
  document.querySelector('#skipOpeningIntro').onclick=finish;
