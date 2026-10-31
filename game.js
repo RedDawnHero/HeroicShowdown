@@ -1156,6 +1156,7 @@
     if (!state || state.phase !== 'game' || state.round !== 1 || state.intro || state.finalCombo) return;
     state.boss = Math.max(1, state.boss);
     state.roundEnded = false; state.ashenTransition = null; state.finImpact = null;
+    if (!state.finisherReady) say('FINISHER READY · PRESS F OR TAP FINAL FINISHER');
     state.finisherReady = true; state.bossAttack = 0; state.bossBlock = 0;
     clearOpeningInput();
   }
@@ -1176,7 +1177,12 @@
   });
   function syncFinisherUI() {
     const playing = state?.phase === 'game';
-    finisherButton.hidden = !playing || !state.finisherReady || !!state.finalCombo;
+    finisherButton.hidden = !playing || !!state.intro || !!state.finalCombo;
+    finisherButton.disabled = !state?.finisherReady;
+    finisherButton.textContent = state?.finisherReady ? 'F · FINAL FINISHER — READY!' : 'FINISHER · WEAKEN BOSS TO UNLOCK';
+    finisherButton.style.fontSize = 'clamp(11px,2.6vw,16px)';
+    finisherButton.style.maxWidth = 'calc(100% - 20px)';
+    finisherButton.style.boxShadow = state?.finisherReady ? '0 0 28px #ffbe45' : 'none';
     endingCaption.hidden = !playing || !state.finalCombo;
     if (!endingCaption.hidden) {
       const age = state.finalCombo.age;
