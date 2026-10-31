@@ -435,7 +435,20 @@
         if(window.heroModelData?.[kind]){parseEmbedded();return;}
         const script=document.createElement('script');script.src='assets/'+(kind==='ashen'?'mr-misfit-rigged':kind)+'-model-data.js'+(kind==='finnew'?'?v=imported-fin-2':'');
         script.onerror=fail;script.onload=()=>{parseEmbedded();script.remove();};document.head.appendChild(script);
-      }else modelLoader.load(url,gltf=>resolve(gltf.scene),undefined,fail);
+      }else {
+        // Large GLBs can fail transiently on GitHub Pages or remain cached as 404s.
+        // Retry with a fresh URL before restoring a blocky fallback actor.
+        let attempts=0;
+        const tryLoad=()=>{
+          const target=attempts ? url+(url.includes('?')?'&':'?')+'model-retry='+attempts : url;
+          modelLoader.load(target,gltf=>resolve(gltf.scene),undefined,error=>{
+            attempts++;
+            if(attempts<3){setTimeout(tryLoad,attempts*1100);return;}
+            fail(error);
+          });
+        };
+        tryLoad();
+      }
     });
   }
   function cloneSkinnedCharacter(source) {
