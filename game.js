@@ -37,7 +37,6 @@
   const musicToggle = $('#musicToggle'), introMusicToggle = $('#introMusicToggle'), selectionMusicToggle = $('#selectionMusicToggle');
   const musicTracks = [levelMusic, introMusic, selectionMusic], musicButtons = [musicToggle, introMusicToggle, selectionMusicToggle];
   selectionMusic.loop = true;
-  let selectionMusicUnlocked = false;
   musicTracks.forEach(track => { track.volume = .45; });
   let musicMuted = false, musicBlocked = false, musicStarting = null, musicTrack = null;
   function levelMusicActive() {
@@ -53,10 +52,9 @@
   function updateMusicButton() {
     musicButtons.forEach(button => {
       const label = button === selectionMusicToggle ? 'hero selection music' : button === introMusicToggle ? 'Rise Up music' : 'Level 1 music';
-      const needsGesture = button === selectionMusicToggle && !selectionMusicUnlocked;
-      button.textContent = (musicBlocked || needsGesture) && !musicMuted ? '▶ PLAY MUSIC' : musicMuted ? '♫ MUSIC OFF' : '♫ MUSIC ON';
-      button.setAttribute('aria-pressed', String(!musicMuted && !musicBlocked && !needsGesture));
-      button.setAttribute('aria-label', (musicBlocked || needsGesture) && !musicMuted ? 'Play ' + label : musicMuted ? 'Turn on ' + label : 'Mute ' + label);
+      button.textContent = musicBlocked && !musicMuted ? '▶ PLAY MUSIC' : musicMuted ? '♫ MUSIC OFF' : '♫ MUSIC ON';
+      button.setAttribute('aria-pressed', String(!musicMuted && !musicBlocked));
+      button.setAttribute('aria-label', musicBlocked && !musicMuted ? 'Play ' + label : musicMuted ? 'Turn on ' + label : 'Mute ' + label);
     });
   }
   function syncLevelMusic(fromGesture = false) {
@@ -76,11 +74,9 @@
     musicToggle.hidden = nextTrack !== levelMusic;
     introMusicToggle.hidden = nextTrack !== introMusic;
     selectionMusicToggle.hidden = nextTrack !== selectionMusic;
-    if (fromGesture) { musicBlocked = false; selectionMusicUnlocked = true; }
+    if (fromGesture) musicBlocked = false;
     updateMusicButton();
     if (!nextTrack) return;
-    // Only start the menu song after a pointer or keyboard interaction.
-    if (nextTrack === selectionMusic && !selectionMusicUnlocked) return;
     if (musicMuted || document.hidden) { nextTrack.pause(); return; }
     if (!nextTrack.paused || musicStarting || musicBlocked) return;
     const attempt = nextTrack.play();
@@ -96,8 +92,7 @@
     });
   }
   musicButtons.forEach(button => button.addEventListener('click', () => {
-    if (button === selectionMusicToggle && !selectionMusicUnlocked) musicMuted = false;
-    else if (!musicBlocked || musicMuted) musicMuted = !musicMuted;
+    if (!musicBlocked || musicMuted) musicMuted = !musicMuted;
     syncLevelMusic(true);
   }));
   document.addEventListener('pointerdown', event => { if (!musicButtons.some(button => button.contains(event.target))) syncLevelMusic(true); });
@@ -1119,5 +1114,7 @@
     return beforeClueSim(dt);
   };
   window.addEventListener('skip-village-clue-scene',()=>action('skipClueScene'));
+  // Try the selection song immediately; blocked browsers retry on the next gesture.
+  syncLevelMusic();
   prepare3DWorld();
 })();
