@@ -285,16 +285,16 @@
 
   const rigs = new Map();
   const characterModelFiles = {
-    finalcreature: 'assets/finalcreature-model.glb',
+    finalcreature: null,
     ecal: 'assets/ecal-model.glb',
-    finnew: 'assets/finnew-model.glb',
+    finnew: null, // procedural first-level hero: optional GLB not supplied
     // The optional fantasy-creature GLB is not shipped; use the built-in twin-hammer enemy.
     hammerer: null,
     golden: 'assets/red-dawn-model.glb',
     wildclaw: 'assets/wildclaw-model.glb',
-    lizard: 'assets/lizard-warrior.glb',
+    lizard: null, // use first-level procedural swordsman
     ashen: 'assets/mr-misfit-rigged.glb',
-    darkwarrior: 'assets/dark-armored-warrior.glb'
+    darkwarrior: null // reserved for the full campaign
   };
   const characterModelLoads = new Map();
   window.loadFinalCity=()=>{if(!characterModelLoads.has('finalcity'))characterModelLoads.set('finalcity',loadPlayerModel('assets/finalcity-model.glb','finalcity'));return characterModelLoads.get('finalcity');};
