@@ -288,8 +288,7 @@
     finalcreature: 'assets/finalcreature-model.glb',
     ecal: 'assets/ecal-model.glb',
     finnew: 'assets/finnew-model.glb',
-    // The optional fantasy-creature GLB is not shipped; use the built-in twin-hammer enemy.
-    hammerer: null,
+    hammerer: 'assets/hammer-creature.glb',
     golden: 'assets/red-dawn-model.glb',
     wildclaw: 'assets/wildclaw-model.glb',
     lizard: 'assets/lizard-warrior.glb',
@@ -493,7 +492,7 @@
     const url = characterModelFiles[kind];
     if (!url || !modelLoader) return;
     // Hide built-in placeholder rigs for both imported player models while their GLBs load.
-    if ((kind === 'finalcreature' || kind === 'finnew' || kind === 'golden' || kind === 'wildclaw' || kind === 'lizard' || kind === 'ecal' || kind === 'hammerer' || kind === 'darkwarrior') && root.userData.body) root.userData.body.visible = false;
+    if ((kind === 'finalcreature' || kind === 'finnew' || kind === 'golden' || kind === 'wildclaw' || kind === 'lizard' || kind === 'ecal' || kind === 'darkwarrior') && root.userData.body) root.userData.body.visible = false;
     // Mr. Misfit's detailed model is ~89 MB: show his procedural rig until loading finishes.
     if (!characterModelLoads.has(kind)) {
       characterModelLoads.set(kind, loadPlayerModel(url,kind));
