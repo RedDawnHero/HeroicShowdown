@@ -358,75 +358,20 @@
     weights[k] = blend; weights[k + 1] = 1 - blend;
   }
   function attachHelmetedRedDawn(root) {
-    const kind = 'golden';
     if (!modelLoader || root.userData.helmetedModel) return;
-    const url = 'assets/helmeted-red-dawn.glb';
-    if (!helmetModelLoads.has(url)) helmetModelLoads.set(url, loadPlayerModel(url,'helmeted'));
-    helmetModelLoads.get(url).then(sourceModel => {
-      if (!sourceModel || !root.parent || root.userData.kind !== 'golden' || root.userData.helmetedModel) return;
-      const model = sourceModel.clone(true), bounds = new THREE.Box3().setFromObject(model), size = bounds.getSize(new THREE.Vector3()), scale = 2.32 / Math.max(.01, size.y);
+    const url='assets/helmeted-red-dawn.glb';
+    if(!helmetModelLoads.has(url))helmetModelLoads.set(url,loadPlayerModel(url,'helmeted'));
+    helmetModelLoads.get(url).then(source=>{
+      if(!source||!root.parent||root.userData.kind!=='golden'||root.userData.helmetedModel)return;
+      const model=source.clone(true),bounds=new THREE.Box3().setFromObject(model);
+      const size=bounds.getSize(new THREE.Vector3()),scale=2.32/Math.max(.01,size.y);
       model.scale.setScalar(scale);
-      model.position.set(-(bounds.min.x + bounds.max.x) * .5 * scale, -bounds.min.y * scale, -(bounds.min.z + bounds.max.z) * .5 * scale);
-      model.name = 'Red Dawn helmet-on pose';
-      root.add(model); model.updateMatrixWorld(true); root.updateMatrixWorld(true);
-      const rootInverse = new THREE.Matrix4().copy(root.matrixWorld).invert();
-      const skinnedRoot = new THREE.Group(); skinnedRoot.name = 'Red Dawn helmet-on runtime rig'; root.add(skinnedRoot);
-      const width = Math.max(.35, size.x * scale), depth = Math.max(.18, size.z * scale), height = 2.32;
-      const boneIndex = new Map(), bonePositions = new Map(), bones = [];
-      const addBone = (name, parent, x, y, z) => {
-        const bone = new THREE.Bone(); bone.name = name;
-        const parentPos = parent ? bonePositions.get(parent.name) : { x: 0, y: 0, z: 0 };
-        bone.position.set(x - parentPos.x, y - parentPos.y, z - parentPos.z);
-        (parent || skinnedRoot).add(bone); boneIndex.set(name, bones.length); bonePositions.set(name, { x, y, z }); bones.push(bone); return bone;
-      };
-      const pelvis = addBone('pelvis', null, 0, height * .46, 0);
-      const spine = addBone('spine', pelvis, 0, height * .61, 0);
-      const chest = addBone('chest', spine, 0, height * .74, 0);
-      const neck = addBone('neck', chest, 0, height * .83, 0);
-      const head = addBone('head', neck, 0, height * .89, 0);
-      const rig = { arms: [], forearms: [], thighs: [], knees: [], shins: [], feet: [], pelvis, spine, chest, neck, head };
-      for (const side of [-1, 1]) {
-        const suffix = side < 0 ? 'L' : 'R', shoulderX = side * width * .28, elbowX = side * width * .38, handX = side * width * .42;
-        const upper = addBone('upperArm' + suffix, chest, shoulderX, height * .765, 0);
-        const elbow = addBone('elbow' + suffix, upper, elbowX, height * .635, 0);
-        const forearm = addBone('forearm' + suffix, elbow, handX, height * .50, 0);
-        const hip = addBone('hip' + suffix, pelvis, side * width * .12, height * .445, 0);
-        const knee = addBone('knee' + suffix, hip, side * width * .135, height * .265, 0);
-        const shin = addBone('shin' + suffix, knee, side * width * .14, height * .085, 0);
-        const foot = addBone('foot' + suffix, shin, side * width * .14, height * .035, .055);
-        rig.arms.push(upper); rig.forearms.push(elbow); rig.thighs.push(hip); rig.knees.push(knee); rig.shins.push(shin); rig.feet.push(foot);
-      }
-      const skeleton = new THREE.Skeleton(bones), rigMeshes = [];
-      model.traverse(node => {
-        if (!node.isMesh) return;
-        let geometry = node.geometry.clone();
-        if(kind==='ecal'&&geometry.index)geometry=geometry.toNonIndexed();
-        geometry.applyMatrix4(new THREE.Matrix4().multiplyMatrices(rootInverse, node.matrixWorld));
-        const position = geometry.getAttribute('position'), count = position.count;
-        const skinIndex = new Uint16Array(count * 4), skinWeight = new Float32Array(count * 4);
-        for (let i = 0; i < count; i++) {
-          const x = position.getX(i), y = position.getY(i), ax = Math.abs(x), xn = ax / width, yn = y / height;
-          const rearDepth = position.getZ(i) / depth + .5;
-          // Keep the cape's rear, hanging panels attached at the neck. Without this
-          // override their wide silhouette is mistaken for arms by the x-based rig.
-          const capeVertex = (kind === 'golden' || kind === 'ashen') && yn > .08 && yn < .82 && xn > .17 && rearDepth < .30;
-          if (capeVertex) {
-            const k = i * 4; skinIndex[k] = boneIndex.get('neck'); skinWeight[k] = 1;
-            continue;
-          }
-          writePlayerSkinWeights(skinIndex, skinWeight, i, x, y, width, height, boneIndex);
-        }
-        geometry.setAttribute('skinIndex', new THREE.Uint16BufferAttribute(skinIndex, 4));
-        geometry.setAttribute('skinWeight', new THREE.Float32BufferAttribute(skinWeight, 4));
-        const sourceMaterials = Array.isArray(node.material) ? node.material : [node.material];
-        const materials = sourceMaterials.map(material => { const clone = material.clone(); clone.side = THREE.DoubleSide; return clone; });
-        const mesh = new THREE.SkinnedMesh(geometry, Array.isArray(node.material) ? materials : materials[0]);
-        mesh.name = node.name || 'Red Dawn helmet-on mesh'; mesh.castShadow = true; mesh.receiveShadow = true; mesh.frustumCulled = false; skinnedRoot.add(mesh); rigMeshes.push(mesh);
-      });
-      root.remove(model); root.updateMatrixWorld(true); skeleton.calculateInverses();
-      rigMeshes.forEach(mesh => mesh.bind(skeleton, mesh.matrixWorld));
-      root.userData.helmetedModel = skinnedRoot; root.userData.helmetedRig = rig;
-      skinnedRoot.visible = root.userData.maskProgress >= .985;
+      model.position.set(-(bounds.min.x+bounds.max.x)*.5*scale,-bounds.min.y*scale,-(bounds.min.z+bounds.max.z)*.5*scale);
+      // Preserve the original cape/armor mesh rather than guessing skin weights.
+      const pose=new THREE.Group();pose.name='Red Dawn intact helmet-on model';pose.add(model);
+      model.traverse(node=>{if(node.isMesh){node.castShadow=true;node.receiveShadow=true;node.frustumCulled=false;}});
+      root.add(pose);root.userData.helmetedModel=pose;root.userData.helmetedRig=null;
+      pose.visible=root.userData.maskProgress>=.985;
     });
   }
   function loadPlayerModel(url,kind) {
