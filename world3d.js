@@ -1603,7 +1603,7 @@
     const desired = state.round===3&&!firstPerson&&!frontView ? new THREE.Vector3(px+1.1,flightLift+3.8,pz+(local.run?7.8:7)) : travelWorld && !firstPerson && !frontView ? new THREE.Vector3(px+1.4,4.1+(bodySize-1)*1.5+flightLift,pz+(local.run?8.8:7.2)) : firstPerson
       ? new THREE.Vector3(px, 2.18 * bodySize + flightLift, pz)
       : frontView
-        ? new THREE.Vector3(px + frontX * 3.5 * bodySize, 2.05 * bodySize + flightLift, pz + frontZ * 3.5 * bodySize)
+        ? new THREE.Vector3(px + frontX * 5.2 * bodySize, 2.3 * bodySize + flightLift, pz + frontZ * 5.2 * bodySize)
         : new THREE.Vector3(px + frontX * 2.1 + sideX * 3.7, 3.55 + flightLift, pz + frontZ * 2.1 + sideZ * 3.7);
     if(state.round===3){
       // Keep follow smoothing independent from obstacle correction.
