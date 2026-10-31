@@ -40,8 +40,7 @@
   musicTracks.forEach(track => { track.volume = .45; });
   let musicMuted = false, musicBlocked = false, musicStarting = null, musicTrack = null;
   function levelMusicActive() {
-    // burialDone stays true after the hammer wave is cleared, even if the mage summons again.
-    return state?.phase === 'game' && state.round === 1 && !state.intro && !state.burialDone && state.hammerers?.some(h => !h.dead) && $('#game').classList.contains('active');
+    return state?.phase === 'game' && state.round === 1 && !state.intro && $('#game').classList.contains('active');
   }
   function desiredMusic() {
     if (window.heroOpeningIntroActive?.() || state?.ashenTransition) return null;
