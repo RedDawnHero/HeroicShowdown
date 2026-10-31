@@ -124,7 +124,7 @@
   }
   musicButtons.forEach(button => button.addEventListener('click', () => {
     const wasMuted = musicMuted;
-    if (button === selectionMusicToggle || !musicBlocked || musicMuted) musicMuted = !musicMuted;
+    if (button !== introMusicToggle || !musicBlocked || musicMuted) musicMuted = !musicMuted;
     if (musicTrack) mutedTracks.set(musicTrack, musicMuted);
     syncLevelMusic(true);
     if (button === selectionMusicToggle && !wasMuted && musicMuted) playSelectionMuteEffect();
