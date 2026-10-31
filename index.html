@@ -29,6 +29,7 @@
     <section id="home" class="screen active">
       <div class="hero-copy"><div class="eyebrow"><i></i> A REAL-TIME SUPERHERO ADVENTURE</div><h1>THE CITY<br>NEEDS <em>YOU.</em></h1><p>Cross five shattered worlds with Red Dawn. Follow the safe path through falling fire rocks, frozen ruins, and broken dimensions to stop Mr. Misfit.</p>
         <div class="hero-pick-label">CHOOSE YOUR HERO</div><div class="hero-pick"><button class="hero-option selected" data-hero="guardian"><img src="assets/hero-reference.jpg" alt=""><span><b>RED DAWN</b><small>MASK LASER · GOLD BLAST</small></span><i>✓</i></button><button class="hero-option" data-hero="wildclaw"><img src="assets/wildclaw-reference.jpg" alt=""><span><b>WILDCLAW</b><small>FIRE FIST · WALL CRAWL</small></span><i>✓</i></button><button class="hero-option" data-hero="finnew"><img src="assets/fin-new-reference.jpg" alt=""><span><b>FIN NEW</b><small>ARMORED HERO · GOLD CREST</small></span><i>✓</i></button><button class="hero-option" data-hero="ecal"><img src="assets/ecal-reference.png" alt="Ecal"><span><b>ECAL</b><small>TWIN BLASTERS · QUICK DODGE</small></span><i>✓</i></button><button class="hero-option" data-hero="lizard"><img src="assets/lizard-sword-reference.jpg" alt="Glowing ice sword"><span><b>LIZARD WARRIOR</b><small>ICE SWORD · HIGH JUMP</small></span><i>✓</i></button></div>
+        <button id="selectionMusicToggle" class="btn btn-outline" type="button" aria-label="Play hero selection music" aria-pressed="false">▶ PLAY MUSIC</button>
         <div class="home-actions"><button id="createRoom" class="btn btn-gold"><span>CREATE A ROOM</span><b>↗</b></button><div class="join-row"><input id="joinCode" maxlength="6" placeholder="ENTER ROOM CODE" autocomplete="off"><button id="joinRoom" class="btn btn-outline">JOIN ROOM <b>→</b></button></div></div>
         <div class="feature-line"><span>✦ 2–8 PLAYERS</span><span>✦ 3 ROUNDS</span><span>✦ SAVE THE CITY</span></div>
       </div>
@@ -49,6 +50,7 @@
     <section id="results" class="screen results-screen"><div class="result-kicker">MISSION REPORT</div><h2 id="resultTitle">CITY SAVED!</h2><p id="resultCopy">The heroes stood together and saved the day.</p><div id="finalScores" class="final-scores"></div><button id="playAgain" class="btn btn-gold">BACK TO BASE <b>↗</b></button></section>
   </main>
   <footer><span>✦ &nbsp; EVERY HERO MAKES A DIFFERENCE</span><span>ROOM CODE PARTY GAME &nbsp;·&nbsp; 2–8 PLAYERS</span></footer>
+  <audio id="selectionMusic" src="assets/hero-selection.m4a" preload="metadata" loop></audio>
   <audio id="riseUpMusic" src="assets/red-dawn-return-intro.m4a" preload="metadata" loop></audio>
   <audio id="levelOneMusic" src="assets/fight-level-1.m4a" preload="metadata" loop></audio>
   <script src="assets/opening-canyon.js"></script>
@@ -103,5 +105,5 @@
   <script src="fin-impact.js?v=three-heroes-2"></script>
   <script src="village-nature.js?v=1"></script>
   <script src="clue-cinematic.js?v=clear-faces-9"></script>
-<script src="game.js?v=village-smooth-9"></script>
+<script src="game.js?v=selection-music-1"></script>
 </body></html>

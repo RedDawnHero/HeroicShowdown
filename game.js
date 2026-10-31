@@ -33,9 +33,11 @@
   function unlockAudio(){try{const Audio=window.AudioContext||window.webkitAudioContext;if(!audioCtx&&Audio)audioCtx=new Audio();if(audioCtx?.state==='suspended')audioCtx.resume();}catch{}}
   function playExplosion(){try{unlockAudio();if(!audioCtx)return;const duration=1.35,buffer=audioCtx.createBuffer(1,Math.floor(audioCtx.sampleRate*duration),audioCtx.sampleRate),data=buffer.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*(1-i/data.length);const noise=audioCtx.createBufferSource(),filter=audioCtx.createBiquadFilter(),noiseGain=audioCtx.createGain();noise.buffer=buffer;filter.type='lowpass';filter.frequency.setValueAtTime(1300,audioCtx.currentTime);filter.frequency.exponentialRampToValueAtTime(90,audioCtx.currentTime+duration);noiseGain.gain.setValueAtTime(.72,audioCtx.currentTime);noiseGain.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+duration);noise.connect(filter).connect(noiseGain).connect(audioCtx.destination);noise.start();noise.stop(audioCtx.currentTime+duration);const boom=audioCtx.createOscillator(),boomGain=audioCtx.createGain();boom.type='sine';boom.frequency.setValueAtTime(105,audioCtx.currentTime);boom.frequency.exponentialRampToValueAtTime(34,audioCtx.currentTime+.7);boomGain.gain.setValueAtTime(.7,audioCtx.currentTime);boomGain.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+.85);boom.connect(boomGain).connect(audioCtx.destination);boom.start();boom.stop(audioCtx.currentTime+.9);}catch{}}
   document.addEventListener('pointerdown',unlockAudio,{once:true});
-  const levelMusic = $('#levelOneMusic'), introMusic = $('#riseUpMusic');
-  const musicToggle = $('#musicToggle'), introMusicToggle = $('#introMusicToggle');
-  const musicTracks = [levelMusic, introMusic], musicButtons = [musicToggle, introMusicToggle];
+  const levelMusic = $('#levelOneMusic'), introMusic = $('#riseUpMusic'), selectionMusic = $('#selectionMusic');
+  const musicToggle = $('#musicToggle'), introMusicToggle = $('#introMusicToggle'), selectionMusicToggle = $('#selectionMusicToggle');
+  const musicTracks = [levelMusic, introMusic, selectionMusic], musicButtons = [musicToggle, introMusicToggle, selectionMusicToggle];
+  selectionMusic.loop = true;
+  let selectionMusicUnlocked = false;
   musicTracks.forEach(track => { track.volume = .45; });
   let musicMuted = false, musicBlocked = false, musicStarting = null, musicTrack = null;
   function levelMusicActive() {
@@ -44,15 +46,17 @@
   }
   function desiredMusic() {
     if (window.heroOpeningIntroActive?.() || state?.ashenTransition) return null;
+    if ($('#home').classList.contains('active')) return selectionMusic;
     if (introVideoActive()) return introMusic;
     return levelMusicActive() ? levelMusic : null;
   }
   function updateMusicButton() {
     musicButtons.forEach(button => {
-      const label = button === introMusicToggle ? 'Rise Up music' : 'Level 1 music';
-      button.textContent = musicBlocked && !musicMuted ? '▶ PLAY MUSIC' : musicMuted ? '♫ MUSIC OFF' : '♫ MUSIC ON';
-      button.setAttribute('aria-pressed', String(!musicMuted && !musicBlocked));
-      button.setAttribute('aria-label', musicBlocked && !musicMuted ? 'Play ' + label : musicMuted ? 'Turn on ' + label : 'Mute ' + label);
+      const label = button === selectionMusicToggle ? 'hero selection music' : button === introMusicToggle ? 'Rise Up music' : 'Level 1 music';
+      const needsGesture = button === selectionMusicToggle && !selectionMusicUnlocked;
+      button.textContent = (musicBlocked || needsGesture) && !musicMuted ? '▶ PLAY MUSIC' : musicMuted ? '♫ MUSIC OFF' : '♫ MUSIC ON';
+      button.setAttribute('aria-pressed', String(!musicMuted && !musicBlocked && !needsGesture));
+      button.setAttribute('aria-label', (musicBlocked || needsGesture) && !musicMuted ? 'Play ' + label : musicMuted ? 'Turn on ' + label : 'Mute ' + label);
     });
   }
   function syncLevelMusic(fromGesture = false) {
@@ -71,9 +75,12 @@
     }
     musicToggle.hidden = nextTrack !== levelMusic;
     introMusicToggle.hidden = nextTrack !== introMusic;
-    if (fromGesture) musicBlocked = false;
+    selectionMusicToggle.hidden = nextTrack !== selectionMusic;
+    if (fromGesture) { musicBlocked = false; selectionMusicUnlocked = true; }
     updateMusicButton();
     if (!nextTrack) return;
+    // Only start the menu song after a pointer or keyboard interaction.
+    if (nextTrack === selectionMusic && !selectionMusicUnlocked) return;
     if (musicMuted || document.hidden) { nextTrack.pause(); return; }
     if (!nextTrack.paused || musicStarting || musicBlocked) return;
     const attempt = nextTrack.play();
@@ -89,7 +96,8 @@
     });
   }
   musicButtons.forEach(button => button.addEventListener('click', () => {
-    if (!musicBlocked || musicMuted) musicMuted = !musicMuted;
+    if (button === selectionMusicToggle && !selectionMusicUnlocked) musicMuted = false;
+    else if (!musicBlocked || musicMuted) musicMuted = !musicMuted;
     syncLevelMusic(true);
   }));
   document.addEventListener('pointerdown', event => { if (!musicButtons.some(button => button.contains(event.target))) syncLevelMusic(true); });
