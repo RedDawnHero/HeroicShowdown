@@ -508,7 +508,7 @@
     }
     characterModelLoads.get(kind).then(sourceModel => {
       if (!sourceModel) {
-        if (root.userData.body) root.userData.body.visible = true;
+        if (root.userData.body) root.userData.body.visible = kind !== 'ecal';
         return;
       }
       if (!root.parent || root.userData.kind !== kind || root.userData.glbModel) return;
@@ -700,7 +700,7 @@
         for (const child of [...root.children]) if (!beforeImport.has(child)) root.remove(child);
         if (root.userData.body) {
           if (!root.userData.body.parent) root.add(root.userData.body);
-          root.userData.body.visible = true;
+          root.userData.body.visible = kind !== 'ecal';
         }
         root.userData.glbModel = null;
         root.userData.glbRig = null;
@@ -708,7 +708,7 @@
       }
     }).catch(error => {
       console.error('Chapter One character import error:', kind, error);
-      if (root.userData.body) root.userData.body.visible = true;
+      if (root.userData.body) root.userData.body.visible = kind !== 'ecal';
     });
   }
   function attachVillainModel(root, kind) {
@@ -774,6 +774,8 @@
     }
     if (kind === 'hammerer') addBossHammers(root);
     const body = new THREE.Group(); root.add(body);
+    // Ecal uses his detailed model/portrait while loading, never the geometric stand-in.
+    if(kind==='ecal')body.visible=false;
     let bodyMat = kind === 'golden' ? mats.dark : mats.gold, limbMat = mats.dark, headMat = mats.skin, accent = mats.cyan, isHero = true;
     if (kind === 'wildclaw') { bodyMat = mats.blue; limbMat = mats.blue; headMat = mat(0xd6c8a8,.82,.02); accent = mats.goldBright; }
     if (kind === 'lizard') { bodyMat = mat(0x315641, .52, .16); limbMat = mat(0x263f33, .64, .12); headMat = mat(0x577b52, .48, .08); accent = mats.cyan; }

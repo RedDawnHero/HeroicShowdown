@@ -931,7 +931,7 @@
   modelNotice.style.cssText='position:fixed;left:20px;bottom:20px;z-index:30000;max-width:440px;padding:16px;background:#14202ff5;color:#fff;border:1px solid #efbd63;border-radius:8px;font:15px sans-serif';
   document.body.appendChild(modelNotice);
   window.heroModelLoadError=(message)=>{modelNotice.hidden=false;modelNotice.textContent=message+' Your saved models have not been removed. Reload the game to retry.';};
-  const load3DWorld = () => { const world = document.createElement('script'); world.src = window.HEROIC_CONTEST_RENDERER_PATH || 'world3d.js?v=contest-first-2';world.onerror=()=>window.heroModelLoadError('The 3D game script could not load.'); document.body.appendChild(world); };
+  const load3DWorld = () => { const world = document.createElement('script'); world.src = window.HEROIC_CONTEST_RENDERER_PATH || 'world3d.js?v=ecal-no-block-1';world.onerror=()=>window.heroModelLoadError('The 3D game script could not load.'); document.body.appendChild(world); };
   window.addEventListener('error',event=>{if(/world3d|model-village|village-radio/.test(event.filename||''))window.heroModelLoadError('3D startup error: '+event.message);});
   const prepare3DWorld = (attempt=0) => {
     Promise.all([import('three'), import('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js')]).then(([THREE, loaders]) => {
@@ -1054,10 +1054,11 @@
 
   const beforeFinAct=act;
   act=function(p,kind){
-    if(p?.hero==='ecal'&&kind==='ecalStuntFlip'){
+    if(p?.hero==='ecal'&&['ecalStuntFlip','ecalFlipSmash'].includes(kind)){
       if(state?.phase!=='game'||state.intro||state.ashenTransition||state.finale||state.finImpact||p.seated||p.knockdown||p.finStunt)return;
       p.ecalSkill=null;p.stuntCombo=null;
-      p.finStunt={kind:'jump',age:0,duration:1.05,side:(p.finSide=-(p.finSide||-1)),terrainJump:false};
+      if(kind==='ecalFlipSmash'){beforeFinAct(p,'ecalHeavy');p.ecalSkill=null;}
+      p.finStunt={kind:kind==='ecalFlipSmash'?'smash':'jump',age:0,duration:1.05,side:(p.finSide=-(p.finSide||-1)),terrainJump:false};
       p.action='jump';p.actionTime=.45;p.jump=0;
       broadcast();return;
     }
@@ -1075,6 +1076,9 @@
     beforeEcalFlipControls();
     if(state?.players?.[myId||'host']?.hero==='ecal'&&!document.querySelector('[data-action="ecalStuntFlip"]')){
       const b=document.createElement('button');b.className='ability';b.dataset.action='ecalStuntFlip';b.textContent='STUNT FLIP';b.title="Fin New's stunt flip";document.querySelector('#abilityGrid').appendChild(b);
+    }
+    if(state?.players?.[myId||'host']?.hero==='ecal'&&!document.querySelector('[data-action="ecalFlipSmash"]')){
+      const b=document.createElement('button');b.className='ability';b.dataset.action='ecalFlipSmash';b.textContent='FLIP SMASH';document.querySelector('#abilityGrid').appendChild(b);
     }
   };
 
