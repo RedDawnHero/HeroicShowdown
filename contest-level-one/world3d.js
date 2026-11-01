@@ -285,16 +285,18 @@
   const characterModelFiles = {
     finalcreature: null,
     ecal: 'assets/ecal-model.glb',
-    finnew: null, // procedural first-level hero: optional GLB not supplied
-    // The optional fantasy-creature GLB is not shipped; use the built-in twin-hammer enemy.
-    hammerer: null,
+    finnew: 'assets/finnew-model.glb',
+    hammerer: 'assets/hammer-creature.glb',
     golden: 'assets/red-dawn-model.glb',
     wildclaw: 'assets/wildclaw-model.glb',
-    lizard: null, // use first-level procedural swordsman
+    lizard: 'assets/lizard-warrior.glb',
     ashen: 'assets/mr-misfit-rigged.glb',
-    darkwarrior: null // reserved for the full campaign
+    darkwarrior: 'assets/dark-armored-warrior.glb'
   };
-  const characterModelLoads = new Map();
+  const characterModelLoads = new Map(), characterModelStatus = new Map();
+  const loadingLabel=document.createElement('div');loadingLabel.setAttribute('role','status');loadingLabel.style.cssText='position:absolute;top:10px;left:10px;z-index:25;padding:8px;background:#102235ee;color:white;font:13px sans-serif;pointer-events:none';loadingLabel.hidden=true;wrap.appendChild(loadingLabel);
+  function reportModels(){const loading=[...characterModelStatus].filter(([,status])=>status==='loading').map(([kind])=>kind);loadingLabel.hidden=!loading.length;loadingLabel.textContent='Loading 3D models: '+loading.join(', ')+'…';}
+  window.heroContestModelStatus=()=>Object.fromEntries(characterModelStatus);
   // The final-city 3D asset is not included in the Chapter One edition.
   window.loadFinalCity=()=>Promise.resolve(null);
   const frostCastNotice=document.createElement('div');frostCastNotice.hidden=true;
@@ -329,8 +331,7 @@
   // Preload the selected real hero model, so the first chapter doesn't rely on
   // the basic stand-in for the entire time a large GLB downloads.
   window.heroContestPreloadModels = async hero => {
-    const kind = hero === 'ecal' ? 'ecal' : hero === 'wildclaw' ? 'wildclaw'
-      : hero === 'guardian' ? 'golden' : null;
+    const kind = hero === 'guardian' ? 'golden' : hero;
     const url = kind && characterModelFiles[kind];
     if (!modelLoader || !url) return false;
     if (!characterModelLoads.has(kind))
@@ -442,14 +443,20 @@
     });
   }
   function loadPlayerModel(url,kind) {
+    characterModelStatus.set(kind,'loading');reportModels();
     return new Promise(resolve=>{
-      const fail=error=>{console.warn('Character model could not be loaded:',url,error);window.heroModelLoadError?.('Unable to load '+kind+' model.');resolve(null);};
+      const ready=scene=>{characterModelStatus.set(kind,'ready');reportModels();resolve(scene);};
+      const fail=error=>{characterModelStatus.set(kind,'error');reportModels();console.warn('Character model could not be loaded:',url,error);window.heroModelLoadError?.('Unable to load '+kind+' model.');resolve(null);};
       if(location.protocol==='file:'){
-        const parseEmbedded=()=>{try{const raw=atob(window.heroModelData[kind]),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);delete window.heroModelData[kind];modelLoader.parse(bytes.buffer,'',gltf=>resolve(gltf.scene),fail);}catch(error){fail(error);}};
+        const parseEmbedded=()=>{try{const raw=atob(window.heroModelData[kind]),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);delete window.heroModelData[kind];modelLoader.parse(bytes.buffer,'',gltf=>ready(gltf.scene),fail);}catch(error){fail(error);}};
         if(window.heroModelData?.[kind]){parseEmbedded();return;}
         const script=document.createElement('script');script.src='assets/'+(kind==='ashen'?'mr-misfit-rigged':kind)+'-model-data.js'+(kind==='finnew'?'?v=imported-fin-2':'');
         script.onerror=fail;script.onload=()=>{parseEmbedded();script.remove();};document.head.appendChild(script);
-      }else modelLoader.load(url,gltf=>resolve(gltf.scene),undefined,fail);
+       }else {
+        let attempt=0;
+        const tryLoad=()=>modelLoader.load(attempt?url+'?model-retry='+attempt:url,gltf=>ready(gltf.scene),undefined,error=>{attempt++;if(attempt<3)setTimeout(tryLoad,attempt*1100);else fail(error);});
+        tryLoad();
+      }
     });
   }
   function cloneSkinnedCharacter(source) {
