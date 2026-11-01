@@ -1116,16 +1116,19 @@
     if(c.age>=1.85){state.finImpact=null;p.action='';p.actionTime=0;p.finStunt=null;if(state.boss<=0){state.roundEnded=true;state.roundReason='BOSS DOWN';}broadcast();}
   };
 
-  const beforeRecoveryAct=act;act=function(p,kind){if(p?.knockdown)return;return beforeRecoveryAct(p,kind);};
-  const beforeRecoveryMove=move;move=function(x,y,run){if(state?.players?.[myId||'host']?.knockdown)return;return beforeRecoveryMove(x,y,run);};
-  const beforeRecoverySim=simulate;simulate=function(dt){
-    if(state?.phase==='game')for(const p of Object.values(state.players))if(p.knockdown){p.fx=p.fy=0;p.dodge=1;p.hp=40;}
-    beforeRecoverySim(dt);
-    if(state?.phase!=='game'||state.intro||state.ashenTransition||state.finale||frostPlaying())return;
+  // Heroes recover standing; no death-fall animation or recovery input lock.
+  function recoverStandingHeroes(){
+    if(state?.phase!=='game')return;
     for(const p of Object.values(state.players)){
-      if(p.hp<=0&&!p.knockdown){p.knockdown={age:0,x:p.x,y:p.y};p.hp=40;p.finStunt=null;p.stuntCombo=null;p.ecalSkill=null;p.action='';p.actionTime=0;p.jump=0;p.flying=false;p.climbing=false;}
-      if(p.knockdown){const k=p.knockdown;k.age+=dt;p.x=k.x;p.y=k.y;p.fx=p.fy=0;p.hp=40;p.dodge=1;if(k.age>=2.6){p.knockdown=null;p.dodge=.8;say('BACK ON YOUR FEET · KEEP FIGHTING');}}
+      if(p.hp<=0||p.knockdown){
+        p.hp=Math.max(40,p.hp||0);p.knockdown=null;p.dodge=Math.max(.8,p.dodge||0);
+      }
     }
+  }
+  const beforeRecoverySim=simulate;simulate=function(dt){
+    recoverStandingHeroes();
+    beforeRecoverySim(dt);
+    recoverStandingHeroes();
   };
 
   window.finalPortalPoint=()=>({x:(window.modelVillageSpawn?.x??500)+65,y:window.modelVillageSpawn?.y??387});
