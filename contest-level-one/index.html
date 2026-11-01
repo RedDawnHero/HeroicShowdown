@@ -37,7 +37,7 @@
     <section id="home" class="screen active">
       <div class="hero-copy"><div class="eyebrow"><i></i> CHAPTER ONE · CONTEST EDITION</div><h1>THE CITY<br>NEEDS <em>YOU.</em></h1><p>Play the opening chapter: survive the burning city, battle the Bonecaller and twin-hammer brutes, and confront Mr. Misfit. One complete playable level.</p>
         <div class="hero-pick-label">CHOOSE YOUR HERO</div><div class="hero-pick"><button class="hero-option selected" data-hero="guardian"><img src="assets/hero-reference.jpg" alt=""><span><b>RED DAWN</b><small>MASK LASER · GOLD BLAST</small></span><i>✓</i></button><button class="hero-option" data-hero="wildclaw"><img src="assets/wildclaw-reference.jpg" alt=""><span><b>WILDCLAW</b><small>FIRE FIST · WALL CRAWL</small></span><i>✓</i></button><button class="hero-option" data-hero="finnew"><img src="assets/fin-new-reference.jpg" alt=""><span><b>FIN NEW</b><small>ARMORED HERO · GOLD CREST</small></span><i>✓</i></button><button class="hero-option" data-hero="ecal"><img src="assets/ecal-reference.png" alt="Ecal"><span><b>ECAL</b><small>TWIN BLASTERS · QUICK DODGE</small></span><i>✓</i></button><button class="hero-option" data-hero="lizard"><img src="assets/lizard-sword-reference.jpg" alt="Glowing ice sword"><span><b>LIZARD WARRIOR</b><small>ICE SWORD · HIGH JUMP</small></span><i>✓</i></button></div>
-        <div class="home-actions"><button id="playSolo" class="btn btn-gold" type="button"><span>PLAY SOLO · TEST LEVEL</span><b>→</b></button><button id="createRoom" class="btn btn-gold"><span>CREATE MULTIPLAYER ROOM</span><b>↗</b></button><div class="join-row"><input id="joinCode" maxlength="6" placeholder="ENTER ROOM CODE" autocomplete="off"><button id="joinRoom" class="btn btn-outline">JOIN ROOM <b>→</b></button></div></div>
+        <div class="home-actions"><button id="selectionMusicToggle" class="btn btn-outline" type="button" aria-label="Mute hero selection music" aria-pressed="true">♫ MUSIC ON</button><button id="playSolo" class="btn btn-gold" type="button"><span>PLAY SOLO · TEST LEVEL</span><b>→</b></button><button id="createRoom" class="btn btn-gold"><span>CREATE MULTIPLAYER ROOM</span><b>↗</b></button><div class="join-row"><input id="joinCode" maxlength="6" placeholder="ENTER ROOM CODE" autocomplete="off"><button id="joinRoom" class="btn btn-outline">JOIN ROOM <b>→</b></button></div></div>
         <details class="mission-rules" open><summary>HOW TO PLAY · CHAPTER ONE</summary><p>Choose a hero. Use PLAY SOLO to test the level alone. For the multiplayer challenge, one player creates a room and shares its six-character code. Other players open this same link on their own devices and join with the code. Once at least two heroes have joined, the host starts the mission. Keep the host’s game open and visible while playing.</p><p>Work together to defeat the Bonecaller, hammer brutes and Mr. Misfit. Move with WASD / arrows or the on-screen pad; use the labeled attack buttons, Space to punch, and Shift to dodge. Watch your health, dodge incoming attacks, and rescue teammates trapped under rubble by attacking nearby. Defeat Mr. Misfit to complete Chapter One; the contest build ends there. If the city is overwhelmed, return to base and retry.</p></details><div class="feature-line"><span>✦ 2–8 ONLINE PLAYERS</span><span>✦ 1 COMPLETE LEVEL</span><span>✦ SAVE THE CITY</span></div>
       </div>
       <div class="character-stage"><div class="sunburst"></div><div class="stage-label label-hero"><small>YOUR HERO</small><b>THE RED DAWN</b></div><img class="hero-art" src="assets/hero-reference.jpg" alt="Golden armored hero holding his helmet"><div class="hero-orbit orbit-one"></div><div class="hero-orbit orbit-two"></div><div class="stage-label label-villain"><small>ARMORED VILLAIN</small><b>MR. MISFIT <span>↗</span></b></div><img class="villain-art" src="assets/villain-reference.jpg" alt="Mr. Misfit, armored villain"><div class="stage-glow"></div></div>
@@ -57,8 +57,9 @@
     <section id="results" class="screen results-screen"><div class="result-kicker">MISSION REPORT</div><h2 id="resultTitle">CITY SAVED!</h2><p id="resultCopy">The heroes stood together and saved the day.</p><div id="finalScores" class="final-scores"></div><button id="playAgain" class="btn btn-gold">BACK TO BASE <b>↗</b></button></section>
   </main>
   <footer><span>✦ &nbsp; EVERY HERO MAKES A DIFFERENCE</span><span>CONTEST EDITION &nbsp;·&nbsp; CHAPTER ONE</span></footer>
-  <audio id="riseUpMusic" preload="metadata" loop></audio>
-  <audio id="levelOneMusic" preload="metadata" loop></audio>
+  <audio id="selectionMusic" src="assets/hero-selection.m4a" preload="metadata" loop></audio>
+  <audio id="riseUpMusic" src="assets/red-dawn-return-intro.m4a" preload="metadata" loop></audio>
+  <audio id="levelOneMusic" src="assets/level-one-my-song-3.m4a" preload="metadata" loop></audio>
   <!-- Chapter One multiplayer; later chapters remain excluded. -->
   <script src="warehouse.js"></script>
   <script src="meteor-level.js?v=contest-1"></script>
@@ -80,5 +81,5 @@
   <script src="combat-performance.js"></script>
   <script src="fin-impact.js"></script>
   <script>window.HEROIC_CONTEST_RENDERER_PATH="contest-level-one/world3d.js?v=handshake-models-1";</script>
-  <script src="contest-level-one/game.js?v=handshake-solo-2"></script>
+  <script src="contest-level-one/game.js?v=handshake-music-3"></script>
 </body></html>

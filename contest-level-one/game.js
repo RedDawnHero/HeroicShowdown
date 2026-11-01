@@ -34,24 +34,23 @@
   function unlockAudio(){try{const Audio=window.AudioContext||window.webkitAudioContext;if(!audioCtx&&Audio)audioCtx=new Audio();if(audioCtx?.state==='suspended')audioCtx.resume();}catch{}}
   function playExplosion(){try{unlockAudio();if(!audioCtx)return;const duration=1.35,buffer=audioCtx.createBuffer(1,Math.floor(audioCtx.sampleRate*duration),audioCtx.sampleRate),data=buffer.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*(1-i/data.length);const noise=audioCtx.createBufferSource(),filter=audioCtx.createBiquadFilter(),noiseGain=audioCtx.createGain();noise.buffer=buffer;filter.type='lowpass';filter.frequency.setValueAtTime(1300,audioCtx.currentTime);filter.frequency.exponentialRampToValueAtTime(90,audioCtx.currentTime+duration);noiseGain.gain.setValueAtTime(.72,audioCtx.currentTime);noiseGain.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+duration);noise.connect(filter).connect(noiseGain).connect(audioCtx.destination);noise.start();noise.stop(audioCtx.currentTime+duration);const boom=audioCtx.createOscillator(),boomGain=audioCtx.createGain();boom.type='sine';boom.frequency.setValueAtTime(105,audioCtx.currentTime);boom.frequency.exponentialRampToValueAtTime(34,audioCtx.currentTime+.7);boomGain.gain.setValueAtTime(.7,audioCtx.currentTime);boomGain.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+.85);boom.connect(boomGain).connect(audioCtx.destination);boom.start();boom.stop(audioCtx.currentTime+.9);}catch{}}
   document.addEventListener('pointerdown',unlockAudio,{once:true});
-  const levelMusic = $('#levelOneMusic'), introMusic = $('#riseUpMusic');
-  const musicToggle = $('#musicToggle'), introMusicToggle = $('#introMusicToggle');
-  const musicTracks = [levelMusic, introMusic], musicButtons = [musicToggle, introMusicToggle];
+  const levelMusic = $('#levelOneMusic'), introMusic = $('#riseUpMusic'), selectionMusic = $('#selectionMusic');
+  const musicToggle = $('#musicToggle'), introMusicToggle = $('#introMusicToggle'), selectionMusicToggle = $('#selectionMusicToggle');
+  const musicTracks = [levelMusic, introMusic, selectionMusic], musicButtons = [musicToggle, introMusicToggle, selectionMusicToggle];
   musicTracks.forEach(track => { track.volume = .45; });
   let musicMuted = false, musicBlocked = false, musicStarting = null, musicTrack = null;
   function levelMusicActive() {
-    if(contestFirstLevel)return false;
-    // burialDone stays true after the hammer wave is cleared, even if the mage summons again.
-    return state?.phase === 'game' && state.round === 1 && !state.intro && !state.burialDone && state.hammerers?.some(h => !h.dead) && $('#game').classList.contains('active');
+    return state?.phase === 'game' && state.round === 1 && !state.intro && $('#game').classList.contains('active');
   }
   function desiredMusic() {
     if (window.heroOpeningIntroActive?.() || state?.ashenTransition) return null;
-    if (introVideoActive()) return introMusic;
+    if ($('#home').classList.contains('active')) return selectionMusic;
+    if (introVideoActive() || (state?.phase === 'game' && state.intro)) return introMusic;
     return levelMusicActive() ? levelMusic : null;
   }
   function updateMusicButton() {
     musicButtons.forEach(button => {
-      const label = button === introMusicToggle ? 'Rise Up music' : 'Level 1 music';
+      const label = button === selectionMusicToggle ? 'hero selection music' : button === introMusicToggle ? 'Rise Up music' : 'Level 1 music';
       button.textContent = musicBlocked && !musicMuted ? '▶ PLAY MUSIC' : musicMuted ? '♫ MUSIC OFF' : '♫ MUSIC ON';
       button.setAttribute('aria-pressed', String(!musicMuted && !musicBlocked));
       button.setAttribute('aria-label', musicBlocked && !musicMuted ? 'Play ' + label : musicMuted ? 'Turn on ' + label : 'Mute ' + label);
@@ -73,6 +72,7 @@
     }
     musicToggle.hidden = nextTrack !== levelMusic;
     introMusicToggle.hidden = nextTrack !== introMusic;
+    selectionMusicToggle.hidden = nextTrack !== selectionMusic;
     if (fromGesture) musicBlocked = false;
     updateMusicButton();
     if (!nextTrack) return;
@@ -1177,6 +1177,7 @@
     $('#playAgain').textContent='PLAY CHAPTER ONE AGAIN';
   };
   window.addEventListener('hero-contest-models-ready',()=>window.heroContestPreloadModels?.(heroChoice).catch(console.warn));
+  syncLevelMusic();
   prepare3DWorld();
 })();
 
