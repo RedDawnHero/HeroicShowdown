@@ -508,7 +508,7 @@
     }
     characterModelLoads.get(kind).then(sourceModel => {
       if (!sourceModel) {
-        if (root.userData.body) root.userData.body.visible = kind !== 'ecal';
+        if (root.userData.body) root.userData.body.visible = !['golden','wildclaw','finnew','ecal','lizard','sentinel'].includes(kind);
         return;
       }
       if (!root.parent || root.userData.kind !== kind || root.userData.glbModel) return;
@@ -700,7 +700,7 @@
         for (const child of [...root.children]) if (!beforeImport.has(child)) root.remove(child);
         if (root.userData.body) {
           if (!root.userData.body.parent) root.add(root.userData.body);
-          root.userData.body.visible = kind !== 'ecal';
+          root.userData.body.visible = !['golden','wildclaw','finnew','ecal','lizard','sentinel'].includes(kind);
         }
         root.userData.glbModel = null;
         root.userData.glbRig = null;
@@ -708,7 +708,7 @@
       }
     }).catch(error => {
       console.error('Chapter One character import error:', kind, error);
-      if (root.userData.body) root.userData.body.visible = kind !== 'ecal';
+      if (root.userData.body) root.userData.body.visible = !['golden','wildclaw','finnew','ecal','lizard','sentinel'].includes(kind);
     });
   }
   function attachVillainModel(root, kind) {
@@ -775,7 +775,7 @@
     if (kind === 'hammerer') addBossHammers(root);
     const body = new THREE.Group(); root.add(body);
     // Ecal uses his detailed model/portrait while loading, never the geometric stand-in.
-    if(kind==='ecal')body.visible=false;
+    if(['golden','wildclaw','finnew','ecal','lizard','sentinel'].includes(kind))body.visible=false;
     let bodyMat = kind === 'golden' ? mats.dark : mats.gold, limbMat = mats.dark, headMat = mats.skin, accent = mats.cyan, isHero = true;
     if (kind === 'wildclaw') { bodyMat = mats.blue; limbMat = mats.blue; headMat = mat(0xd6c8a8,.82,.02); accent = mats.goldBright; }
     if (kind === 'lizard') { bodyMat = mat(0x315641, .52, .16); limbMat = mat(0x263f33, .64, .12); headMat = mat(0x577b52, .48, .08); accent = mats.cyan; }
@@ -1494,6 +1494,8 @@
     const dt = Math.min(.045, (now - lastFrame) / 1000); lastFrame = now;
     const data = window.heroArena3DState();
     const state = data && data.state;
+    window.syncDetailedHeroPreparation?.(state);
+    window.syncMisfitEscapeUI?.(state);
     if(!state||state.phase!=='game'||state.round!==3)window.updateVillageClueCinematic?.(THREE,state,camera,rigs);
     frostCastNotice.hidden=!(state?.phase==='game'&&state.round===2&&state.finale&&!window.frostFinaleActorsReady(state.finale));
     if (!state || state.phase !== 'game' || state.intro) {
@@ -1584,10 +1586,13 @@
     }
     if(!futureWorld) for(const fire of fireSystems){const phase=t*7+fire.seed;fire.light.intensity=4.2+Math.sin(phase)*1.2+Math.sin(phase*2.1)*.7;fire.group.scale.set(1+Math.sin(phase)*.045,1,1+Math.cos(phase*1.3)*.04);fire.flames.forEach((flame,i)=>{flame.scale.y=.82+.23*Math.sin(phase+i*1.9);flame.rotation.z=Math.sin(phase+i)*.16;});fire.smoke.forEach((puff,i)=>{const p=(t*.16+fire.seed*.1+i*.34)%1;puff.position.y=1.1+p*2.8;puff.position.x=Math.sin(phase+p*4+i)*.35;puff.scale.setScalar(.7+p*1.5);puff.material.opacity=(1-p)*.18;});}
     const px = ((local.x ?? 500) - 500) * .055, pz = ((local.y ?? 300) - 300) * .055;
-    const cameraMode = (state.ashenTransition) ? 'third' : (window.heroCameraMode?.() || 'third');
+    const cameraMode = (state.ashenTransition||state.misfitEscape) ? 'third' : (window.heroCameraMode?.() || 'third');
     const frontView = cameraMode === 'front';
     const firstPerson = cameraMode === 'first';
     const localRig = rigs.get(localKey);
+    if(localRig?.userData.glbModel&&!state.players[localKey]?.heroModelReady){
+      if(now-(localRig.userData.readyNotifyAt??-Infinity)>250){localRig.userData.readyNotifyAt=now;window.dispatchEvent(new Event('heroic-detailed-model-ready'));}
+    }
     if (localRig) localRig.visible = !firstPerson;
     const yaw = localRig?.rotation.y ?? Math.atan2(local.fx || 0, local.fy ?? -1);
     const frontX = Math.sin(yaw), frontZ = Math.cos(yaw);
@@ -1745,6 +1750,7 @@
     }
 
     window.updateVillageClueCinematic?.(THREE,state,camera,rigs);
+    window.updateMisfitEscapeCinematic?.(THREE,state,scene,camera,rigs);
     for(const actor of rigs.values())window.stabilizeCharacterPose?.(actor);
     renderer.render(scene, camera);
   }

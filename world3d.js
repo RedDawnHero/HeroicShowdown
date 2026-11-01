@@ -452,13 +452,13 @@
     const url = characterModelFiles[kind];
     if (!url || !modelLoader) return;
     // Keep the hero visible until the detailed model has finished attaching.
-    if (root.userData.body) root.userData.body.visible = kind !== 'ecal';
+    if (root.userData.body) root.userData.body.visible = !['golden','wildclaw','finnew','ecal','lizard','sentinel'].includes(kind);
     // Mr. Misfit's detailed model is ~89 MB: show his procedural rig until loading finishes.
     if (!characterModelLoads.has(kind)) {
       characterModelLoads.set(kind, loadPlayerModel(url,kind));
     }
     characterModelLoads.get(kind).then(sourceModel => {
-      if(!sourceModel){if(root.userData.body)root.userData.body.visible=kind!=='ecal';return;}
+      if(!sourceModel){if(root.userData.body)root.userData.body.visible=!['golden','wildclaw','finnew','ecal','lizard','sentinel'].includes(kind);return;}
       if (!root.parent || root.userData.kind !== kind || root.userData.glbModel) return;
       if(kind==='ashen'&&sourceModel.getObjectByName('pelvis')){attachMisfitRig(root,sourceModel);return;}
       const model = sourceModel.clone(true);
@@ -698,7 +698,7 @@
     if (kind === 'hammerer') addBossHammers(root);
     const body = new THREE.Group(); root.add(body);
     // Ecal uses his detailed model/portrait while loading, never the geometric stand-in.
-    if(kind==='ecal')body.visible=false;
+    if(['golden','wildclaw','finnew','ecal','lizard','sentinel'].includes(kind))body.visible=false;
     let bodyMat = kind === 'golden' ? mats.dark : mats.gold, limbMat = mats.dark, headMat = mats.skin, accent = mats.cyan, isHero = true;
     if (kind === 'wildclaw') { bodyMat = mats.blue; limbMat = mats.blue; headMat = mat(0xd6c8a8,.82,.02); accent = mats.goldBright; }
     if (kind === 'lizard') { bodyMat = mat(0x315641, .52, .16); limbMat = mat(0x263f33, .64, .12); headMat = mat(0x577b52, .48, .08); accent = mats.cyan; }
@@ -1500,6 +1500,7 @@
     const dt = Math.min(.045, (now - lastFrame) / 1000); lastFrame = now;
     const data = window.heroArena3DState();
     const state = data && data.state;
+    window.syncDetailedHeroPreparation?.(state);
     if(!state||state.phase!=='game'||state.round!==3)window.updateVillageClueCinematic?.(THREE,state,camera,rigs);
     frostCastNotice.hidden=!(state?.phase==='game'&&state.round===2&&state.finale&&!window.frostFinaleActorsReady(state.finale));
     if (!state || state.phase !== 'game' || state.intro) {
@@ -1595,6 +1596,9 @@
     const frontView = cameraMode === 'front';
     const firstPerson = cameraMode === 'first';
     const localRig = rigs.get(localKey);
+    if(localRig?.userData.glbModel&&!state.players[localKey]?.heroModelReady){
+      if(now-(localRig.userData.readyNotifyAt??-Infinity)>250){localRig.userData.readyNotifyAt=now;window.dispatchEvent(new Event('heroic-detailed-model-ready'));}
+    }
     if (localRig) localRig.visible = !firstPerson;
     const yaw = localRig?.rotation.y ?? Math.atan2(local.fx || 0, local.fy ?? -1);
     const frontX = Math.sin(yaw), frontZ = Math.cos(yaw);

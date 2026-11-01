@@ -205,7 +205,7 @@
   setInterval(()=>{if(state?.collapse?.phase==='blast'&&!heardBlast){heardBlast=true;playExplosion();say('WILDCLAW: Find a way out of the battlefield!');}},40);
   const splitStyle=document.createElement('style');splitStyle.textContent='.arena-wrap.world-splitting:after{content:"";position:absolute;inset:0;z-index:5;pointer-events:none;background:linear-gradient(105deg,transparent 48.7%,#55dfff66 49.3%,#fff 49.8%,#8e70ff 50.15%,#55dfff66 50.7%,transparent 51.3%);filter:drop-shadow(0 0 18px #72eaff);animation:riftflash .22s ease-in-out infinite alternate}@keyframes riftflash{from{opacity:.45}to{opacity:1}}';document.head.appendChild(splitStyle);
   let futureSequenceStarted=false;
-  setInterval(()=>{if(!isHost||state?.phase!=='game'||state.intro||state.finale||state.ashenTransition||(state.round===2&&window.heroIceLandscapeStatus&&window.heroIceLandscapeStatus!=='ready')||state.finImpact||state.finisherReady||state.finalCombo||(state.frostIntro&&!state.frostIntro.done)||!state.caster||state.caster.dead)return;state.caster.attack-=.1;state.caster.casting=Math.max(0,(state.caster.casting||0)-.1);if(state.caster.attack>0)return;state.caster.attack=4.8;state.caster.casting=.65;const target=Object.values(state.players).sort((a,b)=>Math.hypot(a.x-state.caster.x,a.y-state.caster.y)-Math.hypot(b.x-state.caster.x,b.y-state.caster.y))[0];if(target)state.shots.push({x:state.caster.x-25,y:state.caster.y-64,target:target.id,age:0,type:'wand'});if(state.caster.summons<2){const index=state.hammerers.length;state.hammerers.push(createHammerer(330+Math.random()*340,180+Math.random()*300,1.2+index*.35,true));state.caster.summons++;say('THE BONECALLER SUMMONS ANOTHER TWIN-HAMMER BRUTE!');}broadcast();},100);
+  setInterval(()=>{if(!isHost||state?.phase!=='game'||state.intro||!state.heroModelsReady||state.finale||state.ashenTransition||(state.round===2&&window.heroIceLandscapeStatus&&window.heroIceLandscapeStatus!=='ready')||state.finImpact||state.finisherReady||state.finalCombo||(state.frostIntro&&!state.frostIntro.done)||!state.caster||state.caster.dead)return;state.caster.attack-=.1;state.caster.casting=Math.max(0,(state.caster.casting||0)-.1);if(state.caster.attack>0)return;state.caster.attack=4.8;state.caster.casting=.65;const target=Object.values(state.players).sort((a,b)=>Math.hypot(a.x-state.caster.x,a.y-state.caster.y)-Math.hypot(b.x-state.caster.x,b.y-state.caster.y))[0];if(target)state.shots.push({x:state.caster.x-25,y:state.caster.y-64,target:target.id,age:0,type:'wand'});if(state.caster.summons<2){const index=state.hammerers.length;state.hammerers.push(createHammerer(330+Math.random()*340,180+Math.random()*300,1.2+index*.35,true));state.caster.summons++;say('THE BONECALLER SUMMONS ANOTHER TWIN-HAMMER BRUTE!');}broadcast();},100);
   function nearestHammerer(p){return (state?.hammerers||[]).filter(h=>!h.dead).sort((a,b)=>Math.hypot(a.x-p.x,a.y-p.y)-Math.hypot(b.x-p.x,b.y-p.y))[0];}
   function createHammerer(x,y,attack,summoned=false){return {x,y,hp:45,attack,bossSmash:0,bossSmashHit:false,smashX:500,smashY:470,walking:true,dead:false,summoned};}
   function createHammerers(){return [[140,370,.8],[860,370,1.5],[275,170,2.2],[735,170,2.9],[110,220,3.6],[895,220,4.3]].map(([x,y,attack])=>createHammerer(x,y,attack));}
@@ -917,7 +917,7 @@
   modelNotice.style.cssText='position:fixed;left:20px;bottom:20px;z-index:30000;max-width:440px;padding:16px;background:#14202ff5;color:#fff;border:1px solid #efbd63;border-radius:8px;font:15px sans-serif';
   document.body.appendChild(modelNotice);
   window.heroModelLoadError=(message)=>{modelNotice.hidden=false;modelNotice.textContent=message+' Your saved models have not been removed. Reload the game to retry.';};
-  const load3DWorld = () => { const world = document.createElement('script'); world.src = 'world3d.js?v=ecal-no-block-1';world.onerror=()=>window.heroModelLoadError('The 3D game script could not load.'); document.body.appendChild(world); };
+  const load3DWorld = () => { const world = document.createElement('script'); world.src = 'world3d.js?v=detailed-heroes-escape-1';world.onerror=()=>window.heroModelLoadError('The 3D game script could not load.'); document.body.appendChild(world); };
   window.addEventListener('error',event=>{if(/world3d|model-village|village-radio/.test(event.filename||''))window.heroModelLoadError('3D startup error: '+event.message);});
   const prepare3DWorld = (attempt=0) => {
     Promise.all([import('three'), import('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js')]).then(([THREE, loaders]) => {
@@ -1266,5 +1266,23 @@
   window.addEventListener('heroic-3d-ready',()=>window.preloadPlayerHero?.(heroChoice));
   // Try the selection song immediately; blocked browsers retry on the next gesture.
   syncLevelMusic();
+
+  const beforeModelReadyAct=act;act=function(p,kind){
+    if(kind==='heroModelReady'&&state?.phase==='game'&&p){p.heroModelReady=true;broadcast();return;}
+    if(state?.phase==='game'&&!state.intro&&!state.heroModelsReady)return;
+    return beforeModelReadyAct(p,kind);
+  };
+  const beforeModelReadySim=simulate;simulate=function(dt){
+    if(state?.phase==='game'&&!state.intro&&!state.heroModelsReady){
+      const heroes=Object.values(state.players);
+      state.heroModelsReady=heroes.length>0&&heroes.every(p=>p.heroModelReady);
+      if(!state.heroModelsReady){for(const p of heroes){p.fx=p.fy=0;p.moveSpeed=0;}return;}
+      broadcast();
+    }
+    return beforeModelReadySim(dt);
+  };
+  const beforeModelReadyHUD=renderHUD;renderHUD=function(){beforeModelReadyHUD();window.syncDetailedHeroPreparation?.(state);};
+  window.addEventListener('heroic-detailed-model-ready',()=>action('heroModelReady'));
+
   prepare3DWorld();
 })();
