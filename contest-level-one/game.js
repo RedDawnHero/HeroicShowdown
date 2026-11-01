@@ -1054,6 +1054,14 @@
 
   const beforeFinAct=act;
   act=function(p,kind){
+    if(p?.hero==='ecal'&&kind==='ecalStuntFlip'){
+      if(state?.phase!=='game'||state.intro||state.ashenTransition||state.finale||state.finImpact||p.seated||p.knockdown||p.finStunt)return;
+      p.ecalSkill=null;p.stuntCombo=null;
+      p.finStunt={kind:'jump',age:0,duration:1.05,side:(p.finSide=-(p.finSide||-1)),terrainJump:false};
+      p.action='jump';p.actionTime=.45;p.jump=0;
+      broadcast();return;
+    }
+
     if(!p||p.hero!=='finnew'||!['jump','punch','kick','dodge','finSmash'].includes(kind))return beforeFinAct(p,kind);
     if(state.intro||state.ashenTransition||state.finale||p.seated)return;
     if(p.finStunt&&p.finStunt.age/p.finStunt.duration<.65)return;
@@ -1063,6 +1071,13 @@
   };
   const beforeFinSim=simulate;simulate=function(dt){beforeFinSim(dt);if(!state||state.phase!=='game'||state.intro||state.ashenTransition||state.radioScene)return;for(const p of Object.values(state.players)){if(p.finStunt){p.finStunt.age+=dt;if(p.finStunt.age>=p.finStunt.duration)p.finStunt=null;}}};
   const beforeFinControls=renderControls;renderControls=function(){beforeFinControls();const p=state?.players?.[myId||'host'];if(p?.hero==='finnew'&&!document.querySelector('[data-action="finSmash"]')){const b=document.createElement('button');b.className='ability';b.dataset.action='finSmash';b.textContent='FLIP SMASH';document.querySelector('#abilityGrid').appendChild(b);}};
+  const beforeEcalFlipControls=renderControls;renderControls=function(){
+    beforeEcalFlipControls();
+    if(state?.players?.[myId||'host']?.hero==='ecal'&&!document.querySelector('[data-action="ecalStuntFlip"]')){
+      const b=document.createElement('button');b.className='ability';b.dataset.action='ecalStuntFlip';b.textContent='STUNT FLIP';b.title="Fin New's stunt flip";document.querySelector('#abilityGrid').appendChild(b);
+    }
+  };
+
 
 
 
