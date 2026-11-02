@@ -1597,7 +1597,8 @@
     const firstPerson = cameraMode === 'first';
     const localRig = rigs.get(localKey);
     const detailedCastReady=state.round!==1||[...rigs.values()].filter(actor=>['ashen','hammerer'].includes(actor.userData.kind)).every(actor=>!!actor.userData.glbModel);
-    if(localRig?.userData.glbModel&&detailedCastReady&&!state.players[localKey]?.heroModelReady){
+    const localHeroModelReady=!!localRig?.userData.glbModel&&(local.hero!=='guardian'||!!localRig.userData.helmetedModel);
+    if(localHeroModelReady&&detailedCastReady&&!state.players[localKey]?.heroModelReady){
       if(now-(localRig.userData.readyNotifyAt??-Infinity)>250){localRig.userData.readyNotifyAt=now;window.dispatchEvent(new Event('heroic-detailed-model-ready'));}
     }
     if (localRig) localRig.visible = !firstPerson;
@@ -1770,12 +1771,14 @@
   window.retryDetailedCharacterModels=async()=>{
     for(const [kind,status] of characterModelStatus)if(status==='error'){
       characterModelLoads.delete(kind);characterModelStatus.delete(kind);
+      if(kind==='helmeted')helmetModelLoads.clear();
     }
     for(const actor of rigs.values()){
       const kind=actor.userData.kind;
       if(characterModelFiles[kind]&&!actor.userData.glbModel)attachCharacterModel(actor,kind);
+      if(kind==='golden'&&actor.userData.glbModel&&!actor.userData.helmetedModel)attachHelmetedRedDawn(actor);
     }
-    await Promise.allSettled([...characterModelLoads.values()]);
+    await Promise.allSettled([...characterModelLoads.values(),...helmetModelLoads.values()]);
   };
   requestAnimationFrame(frame);
   // Build the opening cast while the player is on the menu, using the same model cache.
