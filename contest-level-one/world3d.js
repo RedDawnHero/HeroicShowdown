@@ -1755,5 +1755,17 @@
     for(const actor of rigs.values())window.stabilizeCharacterPose?.(actor);
     renderer.render(scene, camera);
   }
+
+  // Retry failures on existing actors, retaining the current game and loaded models.
+  window.retryDetailedCharacterModels=async()=>{
+    for(const [kind,status] of characterModelStatus)if(status==='error'){
+      characterModelLoads.delete(kind);characterModelStatus.delete(kind);
+    }
+    for(const actor of rigs.values()){
+      const kind=actor.userData.kind;
+      if(characterModelFiles[kind]&&!actor.userData.glbModel)attachCharacterModel(actor,kind);
+    }
+    await Promise.allSettled([...characterModelLoads.values()]);
+  };
   requestAnimationFrame(frame);
 })();
