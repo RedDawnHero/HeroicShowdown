@@ -477,8 +477,11 @@
     model.updateMatrixWorld(true);
     const bounds=new THREE.Box3().setFromObject(model),size=bounds.getSize(new THREE.Vector3());
     const scale=2.32/Math.max(.01,size.y);
-    model.scale.setScalar(scale);
-    model.position.set(-(bounds.min.x+bounds.max.x)*.5*scale,-bounds.min.y*scale,-(bounds.min.z+bounds.max.z)*.5*scale);
+    // Keep the imported skin/bind transforms intact inside a separate normalization group.
+    const normalized=new THREE.Group();normalized.name='Mr. Misfit normalized height';normalized.add(model);
+    normalized.scale.setScalar(scale);
+    normalized.position.set(-(bounds.min.x+bounds.max.x)*.5*scale,-bounds.min.y*scale,-(bounds.min.z+bounds.max.z)*.5*scale);
+    const pose=new THREE.Group();pose.name='Mr. Misfit animation pose';pose.add(normalized);
     const bone=name=>model.getObjectByName(name);
     const pair=name=>['L','R'].map(side=>bone(name+side));
     const rig={pelvis:bone('pelvis'),spine:bone('spine'),chest:bone('chest'),neck:bone('neck'),head:bone('head'),
@@ -493,8 +496,8 @@
       mesh.frustumCulled=false;
     });
     // Keep one skeleton per boss instance so level changes never share poses.
-    root.add(model);root.remove(root.userData.body);
-    root.userData.glbModel=model;root.userData.glbRig=rig;root.userData.nativeRig=true;
+    root.add(pose);root.remove(root.userData.body);
+    root.userData.glbModel=pose;root.userData.glbRig=rig;root.userData.nativeRig=true;
     root.updateMatrixWorld(true);
   }
   function attachCharacterModel(root, kind) {
@@ -1015,7 +1018,7 @@
     if(ud.radioHidden){rig.visible=true;delete ud.radioHidden;}
     ud.source = source; ud.isPlayer = player;
     const scale = source.giant ? 1.95 : (player ? (source.hero === 'wildclaw' ? 1.1 : source.hero === 'lizard' ? 1.09 : 1.07) : 1.06);
-    rig.scale.setScalar(1.06 * window.heroCharacterSize(source)*((window.heroArena3DState?.()?.state?.round===3 && player) ? 0.68 : 1));
+    rig.scale.setScalar(1.06 * window.heroCharacterSize(kind==='ashen'?{hero:'guardian'}:source)*((window.heroArena3DState?.()?.state?.round===3 && player) ? 0.68 : 1));
     const jumpProgress = source.jump > 0 ? THREE.MathUtils.clamp((.76 - source.jump) / .76, 0, 1) : 0;
     const jumpLift = source.jump > 0 ? Math.sin(jumpProgress * Math.PI) * 1.15 : 0;
     const x = ((source.x ?? 500) - 500) * .055;

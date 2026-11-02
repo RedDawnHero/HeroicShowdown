@@ -25,7 +25,7 @@
     const boss=rigs.get('ashen-king');if(!boss?.userData.glbModel)return;
     lastCamera=camera;if(savedFov===null)savedFov=camera.fov;
     hero.visible=true;hero.position.set((c.heroX-500)*.055,boss.position.y,(c.heroY-300)*.055);
-    hero.rotation.set(0,Math.atan2(c.bossX-c.heroX,c.bossY-c.heroY),0);hero.scale.setScalar(1);
+    hero.rotation.set(0,Math.atan2(c.bossX-c.heroX,c.bossY-c.heroY),0);hero.scale.setScalar(1.06*(window.heroCharacterSize?.({hero:'guardian'})||1));
     // Hide the playing Red Dawn during his stand-in shot without changing helmet choice.
     for(const [key,p] of Object.entries(state.players))if(p.hero==='guardian'){const actor=rigs.get(key);if(actor){hiddenActors.add(actor);actor.visible=false;}}
     window.resetCharacterPose?.(hero);
