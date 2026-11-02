@@ -14,7 +14,7 @@
 
   for(const g of [actor.userData.glbRig,actor.userData.helmetedRig].filter(Boolean)){
    for(const b of joints(g)){const pose=capture(b);b.position.copy(pose.position);b.scale.copy(pose.scale);if(![b.quaternion.x,b.quaternion.y,b.quaternion.z,b.quaternion.w].every(Number.isFinite))b.quaternion.copy(pose.quaternion);}
-   for(const [b,x,y,z] of [[g.head,.65,1,.45],[g.neck,.35,.6,.35],[g.spine,1.1,1,.65],[g.chest,1.1,1.1,.7]])if(b){const pose=capture(b);pose.relative.copy(pose.quaternion).invert().multiply(b.quaternion);pose.rotation.setFromQuaternion(pose.relative,b.rotation.order);pose.rotation.x=Math.max(-x,Math.min(x,pose.rotation.x));pose.rotation.y=Math.max(-y,Math.min(y,pose.rotation.y));pose.rotation.z=Math.max(-z,Math.min(z,pose.rotation.z));pose.relative.setFromEuler(pose.rotation);b.quaternion.copy(pose.quaternion).multiply(pose.relative);}
+   for(const [b,x,y,z] of [[g.head,.65,1,.45],[g.neck,.35,.6,.35],[g.spine,1.1,1,.65],[g.chest,1.1,1.1,.7],...(g.arms||[]).map(b=>[b,1.9,1.2,1.4]),...(g.forearms||[]).map(b=>[b,2.2,.45,.45]),...(g.hands||[]).map(b=>[b,.75,.85,.75])])if(b){const pose=capture(b);pose.relative.copy(pose.quaternion).invert().multiply(b.quaternion);pose.rotation.setFromQuaternion(pose.relative,b.rotation.order);pose.rotation.x=Math.max(-x,Math.min(x,pose.rotation.x));pose.rotation.y=Math.max(-y,Math.min(y,pose.rotation.y));pose.rotation.z=Math.max(-z,Math.min(z,pose.rotation.z));pose.relative.setFromEuler(pose.rotation);b.quaternion.copy(pose.quaternion).multiply(pose.relative);}
   }
   // Blend the completed pose once, after combat, acting and foot correction.
   const source=actor.userData.source||{},rate=(source.actionTime>0||source.jump>0||source.ecalSkill||source.finStunt)?24:12;
