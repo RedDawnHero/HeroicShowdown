@@ -693,7 +693,7 @@
         trail.name = 'Lizard sword slice trail'; trail.position.set(.12, 1.35, .3); trail.renderOrder = 5; trail.visible = false; root.add(trail);
         root.userData.iceSword = sword; root.userData.swordTrail = trail;
       }
-      if (kind === 'golden') attachHelmetedRedDawn(root);
+      if (kind === 'golden'&&!root.userData.cinematicHelmetOff) attachHelmetedRedDawn(root);
       } catch (error) {
         console.error('Detailed character could not be displayed:', kind, error);
         // Undo a partial import, but preserve the original gameplay rig.
@@ -1496,6 +1496,8 @@
     const state = data && data.state;
     window.syncDetailedHeroPreparation?.(state);
     window.syncMisfitEscapeUI?.(state);
+    window.prepareMisfitConfrontation?.(state,scene);
+    window.syncMisfitConfrontationUI?.(state);
     if(!state||state.phase!=='game'||state.round!==3)window.updateVillageClueCinematic?.(THREE,state,camera,rigs);
     frostCastNotice.hidden=!(state?.phase==='game'&&state.round===2&&state.finale&&!window.frostFinaleActorsReady(state.finale));
     if (!state || state.phase !== 'game' || state.intro) {
@@ -1586,13 +1588,13 @@
     }
     if(!futureWorld) for(const fire of fireSystems){const phase=t*7+fire.seed;fire.light.intensity=4.2+Math.sin(phase)*1.2+Math.sin(phase*2.1)*.7;fire.group.scale.set(1+Math.sin(phase)*.045,1,1+Math.cos(phase*1.3)*.04);fire.flames.forEach((flame,i)=>{flame.scale.y=.82+.23*Math.sin(phase+i*1.9);flame.rotation.z=Math.sin(phase+i)*.16;});fire.smoke.forEach((puff,i)=>{const p=(t*.16+fire.seed*.1+i*.34)%1;puff.position.y=1.1+p*2.8;puff.position.x=Math.sin(phase+p*4+i)*.35;puff.scale.setScalar(.7+p*1.5);puff.material.opacity=(1-p)*.18;});}
     const px = ((local.x ?? 500) - 500) * .055, pz = ((local.y ?? 300) - 300) * .055;
-    const cameraMode = (state.ashenTransition||state.misfitEscape) ? 'third' : (window.heroCameraMode?.() || 'third');
+    const cameraMode = (state.ashenTransition||state.misfitEscape||state.misfitConfrontation) ? 'third' : (window.heroCameraMode?.() || 'third');
     const frontView = cameraMode === 'front';
     const firstPerson = cameraMode === 'first';
     const localRig = rigs.get(localKey);
     const detailedCastReady=state.round!==1||[...rigs.values()].filter(actor=>['ashen','hammerer'].includes(actor.userData.kind)).every(actor=>!!actor.userData.glbModel);
     const localHeroModelReady=!!localRig?.userData.glbModel&&(local.hero!=='guardian'||!!localRig.userData.helmetedModel);
-    if(localHeroModelReady&&detailedCastReady&&!state.players[localKey]?.heroModelReady){
+    if(localHeroModelReady&&detailedCastReady&&(window.misfitConfrontationModelReady?.()!==false)&&!state.players[localKey]?.heroModelReady){
       if(now-(localRig.userData.readyNotifyAt??-Infinity)>250){localRig.userData.readyNotifyAt=now;window.dispatchEvent(new Event('heroic-detailed-model-ready'));}
     }
     if (localRig) localRig.visible = !firstPerson;
@@ -1753,6 +1755,7 @@
 
     window.updateVillageClueCinematic?.(THREE,state,camera,rigs);
     window.updateMisfitEscapeCinematic?.(THREE,state,scene,camera,rigs);
+    window.updateMisfitConfrontation?.(THREE,state,camera,rigs);
     for(const actor of rigs.values())window.stabilizeCharacterPose?.(actor);
     renderer.render(scene, camera);
   }
@@ -1768,6 +1771,7 @@
       if(characterModelFiles[kind]&&!actor.userData.glbModel)attachCharacterModel(actor,kind);
       if(kind==='golden'&&actor.userData.glbModel&&!actor.userData.helmetedModel)attachHelmetedRedDawn(actor);
     }
+    window.retryMisfitConfrontationActor?.();
     await Promise.allSettled([...characterModelLoads.values(),...helmetModelLoads.values()]);
   };
   requestAnimationFrame(frame);
