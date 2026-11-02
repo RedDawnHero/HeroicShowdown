@@ -10,6 +10,6 @@
     const waiting=state?.phase==='game'&&!state.intro&&!state.heroModelsReady;
     panel.hidden=!waiting;if(!waiting)return;
     const players=Object.values(state.players||{}),ready=players.filter(p=>p.heroModelReady).length;
-    message.textContent='Preparing detailed heroes · '+ready+' / '+players.length+' ready. The mission timer is paused.';
+    message.textContent='Preparing detailed models · '+ready+' / '+players.length+' players ready. The mission timer is paused.';
   };
 })();

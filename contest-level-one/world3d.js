@@ -1590,7 +1590,8 @@
     const frontView = cameraMode === 'front';
     const firstPerson = cameraMode === 'first';
     const localRig = rigs.get(localKey);
-    if(localRig?.userData.glbModel&&!state.players[localKey]?.heroModelReady){
+    const detailedCastReady=state.round!==1||[...rigs.values()].filter(actor=>['ashen','hammerer'].includes(actor.userData.kind)).every(actor=>!!actor.userData.glbModel);
+    if(localRig?.userData.glbModel&&detailedCastReady&&!state.players[localKey]?.heroModelReady){
       if(now-(localRig.userData.readyNotifyAt??-Infinity)>250){localRig.userData.readyNotifyAt=now;window.dispatchEvent(new Event('heroic-detailed-model-ready'));}
     }
     if (localRig) localRig.visible = !firstPerson;

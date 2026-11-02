@@ -2,7 +2,8 @@
 (() => {
   const results=document.querySelector('#results'),title=document.querySelector('#resultTitle');if(!results||!title)return;
   const song=document.createElement('audio');song.id='missionFailedMusic';song.src='assets/mission-failed.m4a';song.preload='metadata';song.volume=.6;document.body.appendChild(song);
-  const button=document.createElement('button');button.type='button';button.className='btn btn-outline';button.textContent='▶ PLAY FAILURE MUSIC';button.hidden=true;results.appendChild(button);
+  const button=document.createElement('button');button.type='button';button.className='btn btn-outline';button.dataset.failureSongPlay='';button.textContent='▶ PLAY FAILURE MUSIC';button.hidden=true;results.appendChild(button);
+  const style=document.createElement('style');style.textContent='[data-failure-song-play][hidden]{display:none!important}';document.head.appendChild(style);
   const isFailure=()=>results.classList.contains('active')&&/FAILED|OVERWHELMED|DEFEAT|GAME OVER/i.test(title.textContent);
   let active=false,attempt=0;
   function stop(){attempt++;song.pause();song.currentTime=0;button.hidden=true;}
