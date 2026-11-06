@@ -95,7 +95,7 @@
     document.addEventListener('keydown',event=>{if(!event.repeat&&/^(Key[WASDMJKERQFBHVZX]|Arrow(Up|Down|Left|Right)|Space|ShiftLeft|ControlLeft|Escape)$/.test(event.code))cancel();});
     wrap.addEventListener('pointerdown',event=>{if(!button.contains(event.target))cancel();});
     document.querySelector('#cameraToggle')?.addEventListener('click',cancel);
-    const busy=s=>!!(s?.intro||s?.ashenTransition||s?.misfitConfrontation||s?.misfitEscape||s?.finImpact||s?.finale||s?.radioScene||s?.finalCombo);
+    const busy=s=>!!(s?.intro||s?.ashenTransition||s?.misfitConfrontation||s?.misfitEscape||s?.finImpact||s?.finale||s?.radioScene||s?.finalCombo||s?.canyonArrival);
     let target=null,postScene=null,postCamera=null,postMaterial=null;
     function preparePost(renderer){
       if(!target){target=new T.WebGLRenderTarget(1,1,{depthBuffer:true});target.depthTexture=new T.DepthTexture(1,1,T.UnsignedShortType);postScene=new T.Scene();postCamera=new T.OrthographicCamera(-1,1,1,-1,0,1);postMaterial=new T.ShaderMaterial({depthTest:false,depthWrite:false,uniforms:{image:{value:target.texture},depthImage:{value:target.depthTexture},pixel:{value:new T.Vector2()},focus:{value:1},clip:{value:new T.Vector2(.1,180)}},vertexShader:'varying vec2 v;void main(){v=uv;gl_Position=vec4(position.xy,0.,1.);}',fragmentShader:`uniform sampler2D image;uniform sampler2D depthImage;uniform vec2 pixel;uniform vec2 clip;uniform float focus;varying vec2 v;float distanceAt(vec2 uv){float z=texture2D(depthImage,uv).x;return clip.x*clip.y/(clip.y-z*(clip.y-clip.x));}void main(){float d=distanceAt(v),blur=clamp(abs(d-focus)/max(d,.01)*3.,0.,1.);vec3 col=texture2D(image,v).rgb;float total=1.;for(int i=0;i<12;i++){float angle=float(i)*2.39996;vec2 uv=clamp(v+vec2(cos(angle),sin(angle))*pixel*sqrt((float(i)+.5)/12.)*blur*9.,vec2(0.),vec2(1.));float sampleDepth=distanceAt(uv);float w=sampleDepth<focus+.35&&d>focus+.5?0.:1.;col+=texture2D(image,uv).rgb*w;total+=w;}gl_FragColor=vec4(col/total,1.);
@@ -105,7 +105,7 @@
     }
     return {
       root,
-      setState(state){active=state?.phase==='game'&&state.round===1&&!state.intro;root.visible=active;button.hidden=!active||busy(state);if(!active){cancel();followReady=false;previousPosition=null;if(ownedCamera){ownedCamera.fov=originalFov;ownedCamera.updateProjectionMatrix();ownedCamera=null;}}},
+      setState(state){active=state?.phase==='game'&&[1,4].includes(state.round)&&!state.intro;root.visible=active;button.hidden=!active||busy(state);if(!active){cancel();followReady=false;previousPosition=null;if(ownedCamera){ownedCamera.fov=originalFov;ownedCamera.updateProjectionMatrix();ownedCamera=null;}}},
       updateEnvironment(state,camera,local,t,travelWorld){if(!active)return;sky.position.copy(camera.position);skyMaterial.uniforms.clock.value=t;scene.background=null;scene.fog.color.setHex(0x9b744a);scene.fog.near=34;scene.fog.far=145;dust.position.z=Math.floor(((local.y??300)-300)*.055/80)*80;
         for(const chunk of travelWorld?.root?.children||[])for(const floor of chunk.children||[])if(floor.geometry?.type==='PlaneGeometry'&&floor.geometry.parameters.width===62){floor.material=dirt;floor.name='Clear dirt walking lane';}
       },

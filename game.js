@@ -930,7 +930,7 @@
   modelNotice.style.cssText='position:fixed;left:20px;bottom:20px;z-index:30000;max-width:440px;padding:16px;background:#14202ff5;color:#fff;border:1px solid #efbd63;border-radius:8px;font:15px sans-serif';
   document.body.appendChild(modelNotice);
   window.heroModelLoadError=(message)=>{modelNotice.hidden=false;modelNotice.textContent=message+' Your saved models have not been removed. Reload the game to retry.';};
-  const load3DWorld = () => { const world = document.createElement('script'); world.src = 'world3d.js?v=campaign-restored-1';world.onerror=()=>window.heroModelLoadError('The 3D game script could not load.'); document.body.appendChild(world); };
+  const load3DWorld = () => { const world = document.createElement('script'); world.src = 'world3d.js?v=village-transport-1';world.onerror=()=>window.heroModelLoadError('The 3D game script could not load.'); document.body.appendChild(world); };
   window.addEventListener('error',event=>{if(/world3d|model-village|village-radio/.test(event.filename||''))window.heroModelLoadError('3D startup error: '+event.message);});
   const prepare3DWorld = (attempt=0) => {
     Promise.all([import('three'), import('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js')]).then(([THREE, loaders]) => {
@@ -1300,17 +1300,22 @@
   const beforeDangerHUD=renderHUD;renderHUD=function(){beforeDangerHUD();window.updateCityDangerUI?.(state);};
 
   const continueCampaignButton=document.createElement('button');continueCampaignButton.type='button';continueCampaignButton.id='continueCampaign';continueCampaignButton.className='btn btn-gold';continueCampaignButton.hidden=true;continueCampaignButton.textContent='CONTINUE · SHATTERED FUTURE →';homePanel.appendChild(continueCampaignButton);
-  continueCampaignButton.onclick=()=>action('continueCampaign');
+  continueCampaignButton.onclick=()=>action(state?.villageDeparture?.stage==='waiting'?'boardVillageShip':'continueCampaign');
   const campaignAct=act;act=function(p,kind){
     if(state?.round===5&&state.phase==='game'&&kind!=='heroModelReady'&&(window.campaignFinalCityStatus!=='ready'||window.campaignFinalCastReady!==true))return;
     if(kind==='continueCampaign'){
       if(!isHost||p?.id!=='host'||state?.phase!=='game'||state.round!==3||!state.homeStudy?.cinematicSeen||state.clueScene||!window.VillageClueScene.photosFound(state.homeStudy))return;
-      state.roundEnded=true;state.roundReason='BOSS DOWN';advanceLevel();renderHUD();broadcast();return;
+      window.VillageDeparture.begin(state);renderHUD();broadcast();return;
     }
+    if(kind==='boardVillageShip'){if(isHost&&p?.id==='host')window.VillageDeparture.board(state);broadcast();return;}
+    if(state?.villageDeparture)return;
     return campaignAct(p,kind);
   };
-  const campaignHUD=renderHUD;renderHUD=function(){campaignHUD();const unlocked=state?.phase==='game'&&state.round===3&&state.homeStudy?.cinematicSeen&&!state.clueScene&&window.VillageClueScene.photosFound(state.homeStudy);continueCampaignButton.hidden=!unlocked;continueCampaignButton.disabled=!isHost;continueCampaignButton.textContent=isHost?'CONTINUE · SHATTERED FUTURE →':'WAITING FOR HOST TO CONTINUE';};
+  const campaignHUD=renderHUD;renderHUD=function(){campaignHUD();const unlocked=state?.phase==='game'&&state.round===3&&state.homeStudy?.cinematicSeen&&!state.clueScene&&window.VillageClueScene.photosFound(state.homeStudy);const waiting=state?.villageDeparture?.stage==='waiting';continueCampaignButton.hidden=!(waiting||(unlocked&&!state.villageDeparture&&window.VillageDeparture.canStart(state)));continueCampaignButton.disabled=!isHost;continueCampaignButton.textContent=isHost?(waiting?'BOARD THE SHIP →':'CALL THE TRANSPORT →'):'WAITING FOR HOST TO BOARD';};
+  const campaignMove=move;move=function(x,y,run){if(state?.villageDeparture||state?.canyonArrival)return;return campaignMove(x,y,run);};
   const campaignSim=simulate;simulate=function(dt){
+    if(state?.phase==='game'&&state.round===3){if(!state.villageDeparture&&window.VillageDeparture.canStart(state))window.VillageDeparture.begin(state);if(state.villageDeparture){if(window.VillageDeparture.step(state,dt,window.villageDepartureReady===state.villageDeparture.id&&!document.hidden)){state.villageDeparture=null;state.roundEnded=true;state.roundReason='BOSS DOWN';advanceLevel();state.canyonArrival={age:0};for(const p of Object.values(state.players)){p.x=500;p.y=400;p.fx=p.fy=p.walkX=p.walkY=0;}}return;}}
+    if(state?.canyonArrival){if(!document.hidden)state.canyonArrival.age+=Math.min(dt,.05);if(state.canyonArrival.age>=5)state.canyonArrival=null;return;}
     if(state?.phase==='game'&&state.round===5&&(window.campaignFinalCityStatus!=='ready'||window.campaignFinalCastReady!==true)){broadcast();return;}
     return campaignSim(dt);
   };
@@ -1325,13 +1330,13 @@
   clueGuideButton.onclick=()=>{const me=state?.players[myId||'host']||state?.players.host;if(!me)return;window.resetVillageNavigation?.(me);if(me.seated)action('sitChair');if(me.inspectingPhoto)action('putPhotoAway');const index=window.homeClues.findIndex((c,i)=>!state.homeStudy?.found[i]);if(index>=0){const clue=window.homeClues[index];arenaTarget={x:clue.x,y:clue.y,clueGuide:true};say('FOLLOWING THE SAFE ROUTE · manual movement cancels');}};
   const beforeSafePathAct=act;act=function(p,kind){
     if(kind!=='recoverMovement')return beforeSafePathAct(p,kind);
-    if(!p||state?.phase!=='game'||![2,3].includes(state.round)||state.intro||state.finale||state.ashenTransition||state.clueScene||state.radioScene)return;
+    if(!p||state?.villageDeparture||state?.canyonArrival||state?.phase!=='game'||![2,3].includes(state.round)||state.intro||state.finale||state.ashenTransition||state.clueScene||state.radioScene)return;
     if(state.round===2){if(!window.heroIceTerrain?.snap||window.heroIceLandscapeStatus!=='ready'){say('The ice terrain is still loading');return;}p.x=500;p.y=470;window.heroIceTerrain.snap(p);}
     else{if(window.modelVillageReady&&!window.modelVillageReady()){say('The village is still loading');return;}const spawn=window.modelVillageSpawn;if(!spawn)return;p.x=spawn.x;p.y=spawn.y;p.villageHeight=window.modelVillageHeight?.((p.x-500)*.055,(p.y-300)*.055)??0;p.villageSafe={x:p.x,y:p.y};}
     p.fx=p.fy=p.walkX=p.walkY=p.moveSpeed=0;p.villageVelocity=0;p.villageAirborne=false;p.seated=null;p.inspectingPhoto=false;p.heldPhoto=null;p.buried=false;p.climbing=false;p.climbActive=false;p.flying=false;p.flightHeight=0;p.jump=p.dodge=0;p.finStunt=null;p.ecalSkill=null;p.cometDash=null;p.action='';p.actionTime=0;
     window.resetVillageNavigation?.(p);say('BACK ON THE SAFE PATH · your score and evidence are kept');broadcast();
   };
-  const beforeSafePathHUD=renderHUD;renderHUD=function(){beforeSafePathHUD();const available=state?.phase==='game'&&[2,3].includes(state.round)&&!state.intro&&!state.finale&&!state.ashenTransition&&!state.clueScene&&!state.radioScene;safePathButton.hidden=!available;iceGuideButton.hidden=!available||state.round!==2;iceGuideButton.disabled=window.heroIceLandscapeStatus!=="ready";clueGuideButton.hidden=!available||state.round!==3||!state.homeStudy||state.homeStudy.loading<3.5||state.homeStudy.found.every(Boolean);};
+  const beforeSafePathHUD=renderHUD;renderHUD=function(){beforeSafePathHUD();const available=state?.phase==='game'&&!state.villageDeparture&&!state.canyonArrival&&[2,3].includes(state.round)&&!state.intro&&!state.finale&&!state.ashenTransition&&!state.clueScene&&!state.radioScene;safePathButton.hidden=!available;iceGuideButton.hidden=!available||state.round!==2;iceGuideButton.disabled=window.heroIceLandscapeStatus!=="ready";clueGuideButton.hidden=!available||state.round!==3||!state.homeStudy||state.homeStudy.loading<3.5||state.homeStudy.found.every(Boolean);};
 
   prepare3DWorld();
 })();

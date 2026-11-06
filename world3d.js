@@ -1427,6 +1427,7 @@
   const footContact = window.createFootContact?.(THREE); const groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0), groundRay=new THREE.Raycaster();
   const travelWorld=window.createTravelWorld?.(THREE,scene,renderer);
   const ruinedCanyon=window.createRuinedCityCanyon?.(THREE,scene);
+  const villageTransport=window.createVillageDeparture?.(THREE,scene);
   const darkPresentation=window.createDarkBossPresentation?.(THREE,scene);
   const ashenPortal=window.createAshenPortal?.(THREE,scene);
   const finalRealm=window.createCampaignFinalCity?.(THREE,scene);
@@ -1544,7 +1545,7 @@
     moon.intensity = snowActive ? 1.4 : futureWorld ? 2.4 : meteorActive ? 1.9 : warehouseActive ? 1.65 : 1.45;
     // Shared village lighting reaches every player equally, including the local hero.
     if(state.round===3){hemi.color.setHex(0xffdfb5);hemi.groundColor.setHex(0x695033);hemi.intensity=1.25;moon.color.setHex(0xffdbb5);moon.intensity=1.45;}
-    if(state.round===1){hemi.color.setHex(0xffdfb1);hemi.groundColor.setHex(0x65503b);hemi.intensity=1.2;moon.color.setHex(0xffce83);moon.intensity=2.15;}
+    if([1,4].includes(state.round)){hemi.color.setHex(0xffdfb1);hemi.groundColor.setHex(0x65503b);hemi.intensity=1.2;moon.color.setHex(0xffce83);moon.intensity=2.15;}
     const maskLabel = document.querySelector('[data-action="helmet"] small');
     if (maskLabel && local.hero === 'guardian') maskLabel.textContent = local.helmet ? 'REMOVE MASK' : 'PUT ON MASK';
     const t = now / 1000;
@@ -1775,6 +1776,7 @@
     heroLoadingLabel.hidden=!!localRig?.userData.glbModel||!!state.finalCombo;
     heroLoadingLabel.textContent=characterModelStatus.get(playerKind)==='error'?heroName+' model unavailable. Reload to retry.':'Preparing '+heroName+'…';
     ruinedCanyon?.updateCamera(state,local,camera,localRig,dt,cameraMode,true);
+    villageTransport?.update(state,camera,rigs,localKey,t);
     if(!ruinedCanyon?.renderCloseup(renderer,camera))renderer.render(scene, camera);
   }
 
@@ -1802,5 +1804,6 @@
   }
   window.dispatchEvent(new Event('heroic-3d-ready'));
 })();
+
 
 
