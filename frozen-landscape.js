@@ -448,7 +448,7 @@
     let started=false,loaded=false,error=false,model=null;
     const skyColor=new T.Color(0x8babbc);
     const loader=new window.GLTFLoader();
-    window.heroIceLandscapeStatus='idle';
+    window.heroIceLandscapeStatus='idle';window.heroFrozenCityModelStatus='idle';
     function fail(e){
       // The original GLB is optional on GitHub Pages. Never freeze Level 2
       // controls, enemies or the level transition while its download fails.
@@ -479,7 +479,7 @@
         preview.name='Frozen terrain height-map fallback';
         preview.receiveShadow=true;root.add(preview);model=preview;
       }
-      loaded=true;window.heroIceLandscapeStatus='ready';
+      loaded=true;window.heroIceLandscapeStatus='ready';window.heroFrozenCityModelStatus='preview';
       notice.textContent='Playing with lightweight frozen terrain';
       notice.style.display='none';
     }
@@ -495,11 +495,11 @@
         }else extension.position.z=data.zOffset-tile*tileDepth;
         root.add(extension);
       }
-      loaded=true;window.heroIceLandscapeStatus='ready';
+      loaded=true;window.heroIceLandscapeStatus='ready';window.heroFrozenCityModelStatus='ready';
     }
     function parse(raw){try{const bytes=decode(raw);loader.parse(bytes.buffer,'',accept,fail);}catch(e){fail(e);}}
     function load(){
-      if(started)return;started=true;window.heroIceLandscapeStatus='loading';
+      if(started){if(loaded){window.heroIceLandscapeStatus='ready';window.heroFrozenCityModelStatus=error?'preview':'ready';}return;}started=true;window.heroIceLandscapeStatus='loading';window.heroFrozenCityModelStatus='loading';
       notice.textContent='Preparing the frozen landscape…';
       if(location.protocol==='file:'){
         const script=document.createElement('script');script.src='assets/frozen-landscape-data.js';
@@ -507,7 +507,7 @@
         script.onerror=e=>{script.remove();fail(e);};document.head.append(script);
       }else loader.load('assets/frozen-landscape.glb',accept,undefined,fail);
     }
-    window.loadFrozenLandscape=load;
+    window.loadFrozenLandscape=load;window.prepareFrozenCity=load;
     const snowCount=650*tileCount,positions=new Float32Array(snowCount*3);
     for(let i=0;i<snowCount;i++){positions[i*3]=Math.random()*50-25;positions[i*3+1]=Math.random()*30;positions[i*3+2]=data.minZ+Math.random()*(data.maxZ-data.minZ);}
     const snowGeo=new T.BufferGeometry();snowGeo.setAttribute('position',new T.BufferAttribute(positions,3));
@@ -530,3 +530,4 @@
     }};
   };
 })();
+
