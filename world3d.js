@@ -1425,6 +1425,7 @@
   new ResizeObserver(resize).observe(wrap); window.addEventListener('resize', resize); resize();
   const footContact = window.createFootContact?.(THREE); const groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0), groundRay=new THREE.Raycaster();
   const travelWorld=window.createTravelWorld?.(THREE,scene,renderer);
+  const ruinedCanyon=window.createRuinedCityCanyon?.(THREE,scene);
   const darkPresentation=window.createDarkBossPresentation?.(THREE,scene);
   const ashenPortal=window.createAshenPortal?.(THREE,scene);
   const finalRealm=null; // The fifth level was removed; keep its model files archived.
@@ -1503,6 +1504,7 @@
     const dt = Math.min(.045, (now - lastFrame) / 1000); lastFrame = now;
     const data = window.heroArena3DState();
     const state = data && data.state;
+    ruinedCanyon?.setState(state);
     window.syncDetailedHeroPreparation?.(state);
     if(!state||state.phase!=='game'||state.round!==3)window.updateVillageClueCinematic?.(THREE,state,camera,rigs);
     frostCastNotice.hidden=!(state?.phase==='game'&&state.round===2&&state.finale&&!window.frostFinaleActorsReady(state.finale));
@@ -1541,6 +1543,7 @@
     moon.intensity = snowActive ? 1.4 : futureWorld ? 2.4 : meteorActive ? 1.9 : warehouseActive ? 1.65 : 1.45;
     // Shared village lighting reaches every player equally, including the local hero.
     if(state.round===3){hemi.color.setHex(0xffdfb5);hemi.groundColor.setHex(0x695033);hemi.intensity=1.25;moon.color.setHex(0xffdbb5);moon.intensity=1.45;}
+    if(state.round===1){hemi.color.setHex(0xffdfb1);hemi.groundColor.setHex(0x65503b);hemi.intensity=1.2;moon.color.setHex(0xffce83);moon.intensity=2.15;}
     const maskLabel = document.querySelector('[data-action="helmet"] small');
     if (maskLabel && local.hero === 'guardian') maskLabel.textContent = local.helmet ? 'REMOVE MASK' : 'PUT ON MASK';
     const t = now / 1000;
@@ -1631,6 +1634,7 @@
     else if (frontView) camera.lookAt(px, 1.18 * bodySize + flightLift, pz);
     else if(state.round===3){travelLook.set(px,flightLift+1.35,pz-.8);camera.lookAt(travelLook);}
     else if(travelWorld){travelLook.lerp(new THREE.Vector3(px,1.25*bodySize+flightLift,pz-1.8),1-Math.exp(-dt*8));camera.lookAt(travelLook);}else camera.lookAt(px, 1.08 + flightLift, pz);
+    ruinedCanyon?.updateCamera(state,local,camera,localRig,dt,cameraMode);
     if(state.round===2&&!firstPerson){
       const floor=window.heroIceTerrain?.height(camera.position.x,camera.position.z);
       if(floor!==null&&floor!==undefined)camera.position.y=Math.max(camera.position.y,floor+.8);
@@ -1740,6 +1744,7 @@
       window.modelVillageCamera?.(camera,focus);
       camera.lookAt(focus.clone().add(new THREE.Vector3(0,0,-.5)));
     }
+    ruinedCanyon?.updateEnvironment(state,camera,local,t,travelWorld);
     for(const rig of rigs.values())window.heroStuntFinish?.(rig,rig.userData.source);
     if(!firstPerson&&!state.intro&&!state.ashenTransition&&!state.radioScene&&!state.finale)window.heroStuntCamera?.(THREE,camera,localRig,local);
     for(const rig of rigs.values())window.plantHeroFeet?.(THREE,rig,t);
@@ -1767,7 +1772,8 @@
     const heroName=({guardian:'Red Dawn',wildclaw:'Wildclaw',ecal:'Ecal',finnew:'Fin New',lizard:'Lizard Warrior'})[local.hero]||'Your hero';
     heroLoadingLabel.hidden=!!localRig?.userData.glbModel||!!state.finalCombo;
     heroLoadingLabel.textContent=characterModelStatus.get(playerKind)==='error'?heroName+' model unavailable. Reload to retry.':'Preparing '+heroName+'…';
-    renderer.render(scene, camera);
+    ruinedCanyon?.updateCamera(state,local,camera,localRig,dt,cameraMode,true);
+    if(!ruinedCanyon?.renderCloseup(renderer,camera))renderer.render(scene, camera);
   }
 
   // Retry failures on existing actors, retaining the current game and loaded models.
@@ -1793,3 +1799,4 @@
   }
   window.dispatchEvent(new Event('heroic-3d-ready'));
 })();
+
