@@ -1,7 +1,7 @@
 (() => {
   const $ = (s) => document.querySelector(s), $$ = (s) => [...document.querySelectorAll(s)];
   const screens = $$('.screen'), canvas = $('#arena'), ctx = canvas.getContext('2d');
-  const LEVEL_COUNT = 1;
+  const LEVEL_COUNT = 5;
   const W = 1000, H = 610, colors = ['#ffc857','#6ed8ed','#f68a73','#b7a2ff','#75dda8','#ff96c9','#8db5ff','#e6e39a'], battlefield = new Image();
   function makeFutureCity(){const c=document.createElement('canvas');c.width=W;c.height=H;const g=c.getContext('2d'),sky=g.createLinearGradient(0,0,0,H);sky.addColorStop(0,'#171522');sky.addColorStop(.53,'#382632');sky.addColorStop(1,'#61464b');g.fillStyle=sky;g.fillRect(0,0,W,H);const glow=g.createRadialGradient(505,275,8,505,275,390);glow.addColorStop(0,'#d9554b44');glow.addColorStop(1,'#fff5c900');g.fillStyle=glow;g.fillRect(0,0,W,H);for(let i=0;i<0;i++){const x=(i*193)%W,y=(i*71)%260;g.fillStyle=i%5?'#93eaff88':'#fff4b977';g.fillRect(x,y,1.5,1.5);}for(let layer=0;layer<2;layer++){const base=405+layer*63,step=layer?53:39;for(let x=-20;x<W;x+=step){const seed=(x*13+layer*97+2000)%101,h=85+(seed*1.7)+(layer?0:55),w=step-5,y=base-h;g.fillStyle=layer?'#17121b':'#211924';g.fillRect(x,y,w,h);g.fillStyle=layer?'#512735':'#613746';g.fillRect(x,y,w,2);if(seed%4===0){g.fillStyle='#ff805366';g.fillRect(x+w*.45,y-22,2,22);}for(let yy=y+12;yy<base-6;yy+=13)for(let xx=x+6;xx<x+w-3;xx+=10){const v=Math.abs(Math.floor(xx*3+yy*7+seed))%6;if(v<3){g.fillStyle=v===0?'#a83e58cc':'#70435699';g.fillRect(xx,yy,3,5);}}}}g.fillStyle='#071321';g.beginPath();g.moveTo(0,462);g.lineTo(W,450);g.lineTo(W,H);g.lineTo(0,H);g.closePath();g.fill();g.strokeStyle='#8a384944';g.lineWidth=2;for(let i=0;i<14;i++){g.beginPath();g.moveTo(500,453);g.lineTo(i*85-70,H);g.stroke();}for(let y=474;y<H;y+=25){g.globalAlpha=Math.min(.65,(y-450)/180);g.beginPath();g.moveTo(0,y);g.lineTo(W,y-12);g.stroke();}g.globalAlpha=1;return c;}
   const futureCityBackground=makeFutureCity();battlefield.src=futureCityBackground.toDataURL('image/png');
@@ -233,7 +233,20 @@
     for(const c of state.civilians){if(c.saved)continue;for(const p of Object.values(state.players)){if(Math.hypot(c.x-p.x,c.y-p.y)<38){c.saved=true;p.score+=2;state.danger=Math.max(0,state.danger-10);say('Civilian rescued  +2');break;}}}for(const g of state.goons){const target=Object.values(state.players).sort((a,b)=>Math.hypot(a.x-g.x,a.y-g.y)-Math.hypot(b.x-g.x,b.y-g.y))[0];if(!target)continue;const dx=target.x-g.x,dy=target.y-g.y,dist=Math.hypot(dx,dy)||1;if(dist>35){g.x+=dx/dist*48*dt;g.y+=dy/dist*48*dt;}g.attack-=dt;if(dist<40&&g.attack<=0&&target.dodge<=0&&target.jump<.26){target.hp=Math.max(0,target.hp-7);state.danger+=2;g.attack=1.5;say('A TWIN-HAMMER BRUTE STRIKES!');}}if(state.round===1&&!state.burialDone&&state.hammerers.every(h=>h.dead)){state.burialDone=true;syncLevelMusic();const hero=state.players.host;hero.buried=false;state.collapse={phase:'blast',age:0,x:hero.x,y:hero.y};say('A HUGE EXPLOSION! Keep moving!');}if(state.collapse){state.collapse.age+=dt;if(state.collapse.phase==='blast'&&state.collapse.age>.8){state.collapse.phase='escaped';say('Keep clear of the falling debris!');}if(state.players.host.buried&&state.collapse.age>8){state.players.host.buried=false;state.collapse.phase='escaped';say('The Red Dawn pulls free!');}}
     state.shots=state.shots.filter(s=>{s.age+=dt;let p=state.players[s.target];if(!p||s.age>(s.type==='dark'?2:1.25))return false;s.x+=(p.x-s.x)*Math.min(1,dt*2.4);s.y+=(p.y-s.y)*Math.min(1,dt*2.4);if(Math.hypot(s.x-p.x,s.y-p.y)<20){if(p.blocking&&s.type==='wand'){p.action='block';p.actionTime=.22;playCombatSound('block');say('WAND BLAST BLOCKED!');}else if(p.dodge<=0&&p.jump<.26){p.hp=Math.max(0,p.hp-((s.type==='dark'||s.type==='misfit')?(p.blocking?8:s.damage||23):s.type==='wand'?14:state.giant?24:15));state.danger+=s.type==='wand'?6:state.giant?8:4;if(s.type==='wand')say('THE BONECALLER BLASTS YOU!');}return false;}return true;});if(Math.random()<dt*.15){state.danger+=state.giant?1.4:.6;}if(state.giant&&Math.random()<dt*.7){say('GIANT SMASH! City danger rising');}
     if(state.danger>=100){state.danger=100;state.cityCriticalTime=Math.max(0,(state.cityCriticalTime??12)-dt);if(state.cityCriticalTime<=0){state.roundEnded=true;state.roundReason='CITY OVERWHELMED';}}else state.cityCriticalTime=null;if(state.roundEnded)advanceLevel();}
-  function advanceLevel(){if(state.round>=LEVEL_COUNT){if(state.roundReason==='BOSS DOWN'){offerFinalFinisher();syncFinisherUI();return;}state.phase="results";state.roundEnded=true;return;}state.round++;if(state.round===2){window.heroFrozenCityModelStatus='loading';window.heroIceLandscapeStatus='loading';window.prepareFrozenCity?.();}if(state.round>4||state.roundReason==='CITY OVERWHELMED'||state.roundReason==='TIME UP'){state.phase='results';}else{const cleared=state.round-1,levelNames=['','FALLEN CITADEL','FROZEN FUTURE','HOME VILLAGE','SHATTERED FUTURE','DARK WARRIOR THRONE'];state.time=300+Math.min(60,(state.round-1)*10);state.danger=12;state.bossMax=state.round===5?420:180;state.boss=state.bossMax;if(state.round===5)state.burialDone=true;state.darkStrike=null;state.darkEnraged=false;state.darkRageAnnounced=false;state.darkAttackTurn=0;state.finale=null;state.giant=false;state.roundEnded=false;state.roundReason='';state.bossBlock=0;state.bossAttack=1.5;state.bossX=700;state.bossY=285;state.hammerers=createHammerers();for(const h of state.hammerers)h.hp+=Math.max(0,state.round-1)*8;state.caster={x:370,y:320,hp:60+state.round*10,attack:3.5,casting:0,summons:0,dead:false};state.goons=[];state.shots=[];state.collapse=null;state.players.host.buried=false;for(const p of Object.values(state.players)){p.hp=Math.max(50,p.hp);p.fx=0;p.fy=0;p.action='';p.actionTime=0;}state.civilians=[{x:485,y:135,saved:false},{x:812,y:408,saved:false},{x:191,y:475,saved:false}];say('ROUND '+cleared+' CLEAR! LEVEL '+state.round+' · '+levelNames[state.round]);}}
+  function advanceLevel(){
+    if(!state||state.phase!=='game')return;
+    if(state.roundReason==='CITY OVERWHELMED'||state.roundReason==='TIME UP'){state.phase='results';state.roundEnded=true;return;}
+    if(state.round>=LEVEL_COUNT){if(state.roundReason==='BOSS DOWN')beginBossFinale();return;}
+    const cleared=state.round;state.round++;
+    if(state.round===2){window.heroFrozenCityModelStatus='loading';window.heroIceLandscapeStatus='loading';window.prepareFrozenCity?.();}
+    const levelNames=['','FALLEN CITADEL','FROZEN FUTURE','HOME VILLAGE','SHATTERED FUTURE','DARK WARRIOR THRONE'];
+    state.time=300+Math.min(60,(state.round-1)*10);state.danger=12;state.cityCriticalTime=null;state.bossMax=state.round===5?420:180;state.boss=state.bossMax;state.burialDone=true;
+    state.darkStrike=null;state.darkEnraged=false;state.darkRageAnnounced=false;state.darkAttackTurn=0;state.finalBoss=false;state.finalStorm=null;state.finalAllies=[];state.finalCombo=null;state.finisherReady=false;state.finale=null;state.giant=false;state.roundEnded=false;state.roundReason='';state.bossBlock=0;state.bossAttack=1.5;state.bossX=700;state.bossY=285;
+    state.hammerers=createHammerers();for(const h of state.hammerers)h.hp+=Math.max(0,state.round-1)*8;
+    state.caster={x:370,y:320,hp:60+state.round*10,attack:3.5,casting:0,summons:0,dead:false};state.goons=[];state.shots=[];state.collapse=null;state.clinic={x:180,y:510,cooldown:0};state.ashenTransition=null;state.finImpact=null;state.misfitMelee=null;state.clueScene=null;
+    for(const p of Object.values(state.players)){p.hp=Math.max(50,p.hp);p.x=500;p.y=470;p.fx=p.fy=p.moveSpeed=0;p.action='';p.actionTime=0;p.buried=false;p.portalEntered=false;p.flying=false;p.flightHeight=0;p.climbing=false;p.jump=p.dodge=0;p.ecalSkill=null;p.finStunt=null;p.cometDash=null;p.seated=null;p.heldPhoto=null;p.inspectingPhoto=false;p.villageAirborne=false;p.villageVelocity=0;p.villageHeight=0;p.walkX=p.walkY=0;}
+    state.civilians=[{x:485,y:135,saved:false},{x:812,y:408,saved:false},{x:191,y:475,saved:false}];clearOpeningInput();say('ROUND '+cleared+' CLEAR! LEVEL '+state.round+' · '+levelNames[state.round]);broadcast();
+  }
 
   let controlHero='';function renderControls(){const me=state?.players[myId==='host'?'host':myId],hero=me?.hero||'guardian';if(controlHero===hero)return;controlHero=hero;const specs=hero==='wildclaw'?[['punch','✊','PUNCH / FIRE'],['kick','🦶','KICK'],['jump','↑','HIGH JUMP'],['slam','✹','GROUND SLAM'],['run','🏃','RUN · HOLD'],['dodge','➜','DODGE']]:hero==='sentinel'||hero==='finnew'?[['punch','✊','PUNCH'],['kick','🦶','KICK'],...(hero==='finnew'?[['jump','⬆','JUMP']]:[]),['run','🏃','RUN · HOLD'],['dodge','➜','DODGE']]:[['punch','✊','PUNCH'],['kick','🦶','KICK'],['jump','⬆','JUMP'],['blast','✴','GOLD BLAST'],['helmet','⛑','PUT ON MASK'],['laser','⌁','MASK LASER'],['run','🏃','RUN · HOLD'],['dodge','➜','DODGE']];$('#abilityGrid').innerHTML=specs.map(([a,icon,label])=>`<button class="ability ${a}" data-action="${a}"><span>${icon}</span><small>${label}</small></button>`).join('');$('#abilityGrid').classList.toggle('wildclaw',hero==='wildclaw');$('#gameTip').innerHTML=hero==='sentinel'||hero==='finnew'?'MOVE PAD FOR ALL DIRECTIONS <span>·</span> HOLD RUN TO SPRINT <span>·</span> SPACE PUNCH <span>·</span> SHIFT DODGE':hero==='wildclaw'?'MOVE PAD FOR ALL DIRECTIONS <span>·</span> HOLD RUN TO SPRINT <span>·</span> SPACE PUNCH / HOLD FOR FIRE FIST <span>·</span> E JUMP <span>·</span> R GROUND SLAM <span>·</span> SHIFT DODGE <span>·</span> C CLIMB <span>·</span> MOVE UP TO SCALE A WALL':'MOVE PAD FOR ALL DIRECTIONS <span>·</span> HOLD RUN TO SPRINT <span>·</span> SPACE PUNCH <span>·</span> E BLAST <span>·</span> R PUT ON MASK <span>·</span> Q LASER <span>·</span> SHIFT DODGE';}
   function action(kind){if(!state||state.phase!=='game')return;if(kind==='laser'&&!state.players[myId==='host'?'host':myId]?.helmet){say('Put your helmet on to fire the mask laser');return;}if(isHost)act(state.players.host,kind);else{const c=[...links.values()][0];if(c?.open)c.send({type:'action',action:kind});}const b=$(`[data-action="${kind}"]`);b?.classList.add('pressed');setTimeout(()=>b?.classList.remove('pressed'),120);}
@@ -917,7 +930,7 @@
   modelNotice.style.cssText='position:fixed;left:20px;bottom:20px;z-index:30000;max-width:440px;padding:16px;background:#14202ff5;color:#fff;border:1px solid #efbd63;border-radius:8px;font:15px sans-serif';
   document.body.appendChild(modelNotice);
   window.heroModelLoadError=(message)=>{modelNotice.hidden=false;modelNotice.textContent=message+' Your saved models have not been removed. Reload the game to retry.';};
-  const load3DWorld = () => { const world = document.createElement('script'); world.src = 'world3d.js?v=ruined-canyon-1';world.onerror=()=>window.heroModelLoadError('The 3D game script could not load.'); document.body.appendChild(world); };
+  const load3DWorld = () => { const world = document.createElement('script'); world.src = 'world3d.js?v=campaign-restored-1';world.onerror=()=>window.heroModelLoadError('The 3D game script could not load.'); document.body.appendChild(world); };
   window.addEventListener('error',event=>{if(/world3d|model-village|village-radio/.test(event.filename||''))window.heroModelLoadError('3D startup error: '+event.message);});
   const prepare3DWorld = (attempt=0) => {
     Promise.all([import('three'), import('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js')]).then(([THREE, loaders]) => {
@@ -1175,7 +1188,7 @@
 
   // The one-level finale is triggered by the player and remains host-authoritative.
   function offerFinalFinisher() {
-    if (!state || state.phase !== 'game' || state.round !== 1 || state.intro || state.finalCombo) return;
+    if (LEVEL_COUNT!==1 || !state || state.phase !== 'game' || state.round !== 1 || state.intro || state.finalCombo) return;
     state.boss = Math.max(1, state.boss);
     state.roundEnded = false; state.ashenTransition = null; state.finImpact = null;
     if (!state.finisherReady) say('FINISHER READY · PRESS F OR TAP FINAL FINISHER');
@@ -1199,7 +1212,7 @@
   });
   function syncFinisherUI() {
     const playing = state?.phase === 'game';
-    finisherButton.hidden = !playing || !!state.intro || !!state.finalCombo;
+    finisherButton.hidden = LEVEL_COUNT!==1 || !playing || !!state.intro || !!state.finalCombo;
     finisherButton.disabled = !state?.finisherReady;
     finisherButton.textContent = state?.finisherReady ? 'F · FINAL FINISHER — READY!' : 'FINISHER · WEAKEN BOSS TO UNLOCK';
     finisherButton.style.fontSize = 'clamp(11px,2.6vw,16px)';
@@ -1285,6 +1298,24 @@
   window.addEventListener('heroic-detailed-model-ready',()=>action('heroModelReady'));
 
   const beforeDangerHUD=renderHUD;renderHUD=function(){beforeDangerHUD();window.updateCityDangerUI?.(state);};
+
+  const continueCampaignButton=document.createElement('button');continueCampaignButton.type='button';continueCampaignButton.id='continueCampaign';continueCampaignButton.className='btn btn-gold';continueCampaignButton.hidden=true;continueCampaignButton.textContent='CONTINUE · SHATTERED FUTURE →';homePanel.appendChild(continueCampaignButton);
+  continueCampaignButton.onclick=()=>action('continueCampaign');
+  const campaignAct=act;act=function(p,kind){
+    if(state?.round===5&&state.phase==='game'&&kind!=='heroModelReady'&&(window.campaignFinalCityStatus!=='ready'||window.campaignFinalCastReady!==true))return;
+    if(kind==='continueCampaign'){
+      if(!isHost||p?.id!=='host'||state?.phase!=='game'||state.round!==3||!state.homeStudy?.cinematicSeen||state.clueScene||!window.VillageClueScene.photosFound(state.homeStudy))return;
+      state.roundEnded=true;state.roundReason='BOSS DOWN';advanceLevel();renderHUD();broadcast();return;
+    }
+    return campaignAct(p,kind);
+  };
+  const campaignHUD=renderHUD;renderHUD=function(){campaignHUD();const unlocked=state?.phase==='game'&&state.round===3&&state.homeStudy?.cinematicSeen&&!state.clueScene&&window.VillageClueScene.photosFound(state.homeStudy);continueCampaignButton.hidden=!unlocked;continueCampaignButton.disabled=!isHost;continueCampaignButton.textContent=isHost?'CONTINUE · SHATTERED FUTURE →':'WAITING FOR HOST TO CONTINUE';};
+  const campaignSim=simulate;simulate=function(dt){
+    if(state?.phase==='game'&&state.round===5&&(window.campaignFinalCityStatus!=='ready'||window.campaignFinalCastReady!==true)){broadcast();return;}
+    return campaignSim(dt);
+  };
+
   prepare3DWorld();
 })();
+
 

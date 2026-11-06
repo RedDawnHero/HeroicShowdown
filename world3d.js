@@ -300,6 +300,7 @@
   heroLoadingLabel.style.cssText='position:absolute;top:12px;left:12px;z-index:15;background:#101b2ee6;color:#fff2ca;padding:8px 12px;border-radius:6px;font:600 12px sans-serif;pointer-events:none';
   heroLoadingLabel.hidden=true;wrap.appendChild(heroLoadingLabel);
   window.loadFinalCity=()=>{if(!characterModelLoads.has('finalcity'))characterModelLoads.set('finalcity',loadPlayerModel('assets/finalcity-model.glb','finalcity'));return characterModelLoads.get('finalcity');};
+  window.retryCampaignFinalCityModel=()=>{if(characterModelStatus.get('finalcity')==='error'){characterModelLoads.delete('finalcity');characterModelStatus.delete('finalcity');}};
   const frostCastNotice=document.createElement('div');frostCastNotice.hidden=true;
   frostCastNotice.style.cssText='position:absolute;left:20px;top:70px;z-index:30;background:#102235ee;color:white;padding:14px;border-radius:8px';
   frostCastNotice.textContent='Preparing Red Dawn and Wildclaw…';wrap.appendChild(frostCastNotice);
@@ -1428,7 +1429,7 @@
   const ruinedCanyon=window.createRuinedCityCanyon?.(THREE,scene);
   const darkPresentation=window.createDarkBossPresentation?.(THREE,scene);
   const ashenPortal=window.createAshenPortal?.(THREE,scene);
-  const finalRealm=null; // The fifth level was removed; keep its model files archived.
+  const finalRealm=window.createCampaignFinalCity?.(THREE,scene);
   const travelLook=new THREE.Vector3();
   const villageFollowPosition=new THREE.Vector3();
   let villageFollowMode=null;
@@ -1753,6 +1754,7 @@
     window.redDawnPunchCamera?.(THREE,state,camera,rigs);
     if(!firstPerson&&!state.finale&&!state.ashenTransition&&!state.radioScene)window.heroCombatCamera?.(THREE,camera,localRig,local);
     finalRealm?.update(state,t,local);
+    if(state.round===5){window.campaignFinalCastError=['darkwarrior','finalcreature'].some(k=>characterModelStatus.get(k)==='error');const enemies=[...rigs.values()].filter(r=>['darkwarrior','finalcreature'].includes(r.userData.kind));window.campaignFinalCastReady=!!rigs.get('dark-armored-warrior')?.userData.glbModel&&enemies.every(r=>!!r.userData.glbModel)&&enemies.filter(r=>r.userData.kind==='finalcreature').length===(state.goons||[]).filter(g=>g.finalCreature).length;}
     if(state.round===5){const bossRig=rigs.get('dark-armored-warrior');if(bossRig)bossRig.scale.multiplyScalar(1+(state.finalStorm?.energy||0)*.3);}
     window.updateFrostIntro?.(THREE,state,scene,camera,rigs,local,dt);
     window.finImpactCamera?.(THREE,state,camera,rigs,dt);
@@ -1778,6 +1780,7 @@
 
   // Retry failures on existing actors, retaining the current game and loaded models.
   window.retryDetailedCharacterModels=async()=>{
+    window.retryCampaignFinalCity?.();
     for(const [kind,status] of characterModelStatus)if(status==='error'){
       characterModelLoads.delete(kind);characterModelStatus.delete(kind);
       if(kind==='helmeted')helmetModelLoads.clear();
@@ -1799,4 +1802,5 @@
   }
   window.dispatchEvent(new Event('heroic-3d-ready'));
 })();
+
 
