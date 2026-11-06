@@ -106,7 +106,7 @@
     return {
       root,
       setState(state){active=state?.phase==='game'&&[1,4].includes(state.round)&&!state.intro;root.visible=active;button.hidden=!active||busy(state);if(!active){cancel();followReady=false;previousPosition=null;if(ownedCamera){ownedCamera.fov=originalFov;ownedCamera.updateProjectionMatrix();ownedCamera=null;}}},
-      updateEnvironment(state,camera,local,t,travelWorld){if(!active)return;sky.position.copy(camera.position);skyMaterial.uniforms.clock.value=t;scene.background=null;scene.fog.color.setHex(0x9b744a);scene.fog.near=34;scene.fog.far=145;dust.position.z=Math.floor(((local.y??300)-300)*.055/80)*80;
+      updateEnvironment(state,camera,local,t,travelWorld){if(!active)return;sky.visible=!window.heroScenicSkyReady?.(state.round);sky.position.copy(camera.position);skyMaterial.uniforms.clock.value=t;scene.background=null;scene.fog.color.setHex(0x9b744a);scene.fog.near=34;scene.fog.far=145;dust.position.z=Math.floor(((local.y??300)-300)*.055/80)*80;
         for(const chunk of travelWorld?.root?.children||[])for(const floor of chunk.children||[])if(floor.geometry?.type==='PlaneGeometry'&&floor.geometry.parameters.width===62){floor.material=dirt;floor.name='Clear dirt walking lane';}
       },
       updateCamera(state,local,camera,rig,dt,mode,closeOnly=false){
@@ -129,3 +129,4 @@
     };
   };
 })();
+

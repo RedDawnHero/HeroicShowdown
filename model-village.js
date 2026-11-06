@@ -105,7 +105,7 @@
   const timber=new T.MeshStandardMaterial({color:0x79502f,roughness:.9});
   const bridge=new T.Mesh(new T.BoxGeometry(20,.22,3.2),timber);bridge.position.set(0,bridgeY-.11,bridgeZ);root.add(bridge);
   for(const side of [-1,1])for(let x=-9.5;x<=9.5;x+=1){const post=new T.Mesh(new T.BoxGeometry(.09,1,.09),timber);post.position.set(x,bridgeY+.5,bridgeZ+side*1.52);root.add(post);}
-  const daySky=new T.Mesh(new T.SphereGeometry(650,32,16),new T.ShaderMaterial({side:T.BackSide,depthWrite:false,vertexShader:'varying vec3 v;void main(){v=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:'varying vec3 v;void main(){float h=clamp(normalize(v).y,0.,1.);gl_FragColor=vec4(mix(vec3(.94,.68,.40),vec3(.43,.35,.36),sqrt(h)),1.);}'}));root.add(daySky);const skyEffects={update(t,p){daySky.position.copy(p);}};
+  const daySky=new T.Mesh(new T.SphereGeometry(650,32,16),new T.ShaderMaterial({side:T.BackSide,depthWrite:false,vertexShader:'varying vec3 v;void main(){v=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',fragmentShader:'varying vec3 v;void main(){float h=clamp(normalize(v).y,0.,1.);gl_FragColor=vec4(mix(vec3(.94,.68,.40),vec3(.43,.35,.36),sqrt(h)),1.);}'}));root.add(daySky);const skyEffects={update(t,p){daySky.visible=!window.heroScenicSkyReady?.(3);daySky.position.copy(p);}};
   root.add(new T.HemisphereLight(0xffdfb5,0x695033,1.15));
   const light=new T.DirectionalLight(0xffd3a0,2.0);light.position.set(-30,45,20);root.add(light);
   const heroFill=new T.DirectionalLight(0xffdfad,1.15);
@@ -237,4 +237,5 @@
     if(companions){try{companions.update(t,{x:p.x,y:window.modelVillageHeight(p.x,p.z)??bridgeY,z:p.z});}catch(error){console.error('Companion animation paused',error);companions=null;}}flowTime.value=t;clueProps.forEach((prop,i)=>{prop.visible=!window.heroArena3DState?.()?.state?.homeStudy?.found?.[i];});cluePlaceholders.forEach((photo,i)=>{photo.visible=!clueProps[i]&&!window.heroArena3DState?.()?.state?.homeStudy?.found?.[i];});markers.forEach((m,i)=>{m.visible=!window.heroArena3DState?.()?.state?.homeStudy?.found?.[i];m.rotation.z=t*.2;});}};
  };
 })();
+
 
