@@ -964,7 +964,7 @@
     const jumpLift = source.jump > 0 ? Math.sin(jumpProgress * Math.PI) * 1.15 : 0;
     const x = ((source.x ?? 500) - 500) * .055;
     const z = ((source.y ?? 300) - 300) * .055;
-    const climbLift = source.climbing ? Math.min(110, source.climbHeight || 0) * .045 : 0;
+    const climbLift = source.climbing ? Math.min(700, source.climbHeight || 0) * .045 : 0;
     rig.position.set(x, jumpLift + climbLift, z);
     if (ud.creatureModel) {
       const creatureMotion = t * 2.15 + key.length * .7;
@@ -1426,6 +1426,7 @@
   new ResizeObserver(resize).observe(wrap); window.addEventListener('resize', resize); resize();
   const footContact = window.createFootContact?.(THREE); const groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0), groundRay=new THREE.Raycaster();
   const travelWorld=window.createTravelWorld?.(THREE,scene,renderer);
+  const wildclawPresentation=window.createWildclawPresentation?.(THREE,scene);
   const ruinedCanyon=window.createRuinedCityCanyon?.(THREE,scene);
   const scenicBackground=window.createScenicBackground?.(THREE,scene);
   const cosmicArrival=window.createCosmicArrival?.(THREE,wrap,async()=>{const url='assets/helmeted-red-dawn.glb';if(!helmetModelLoads.has(url))helmetModelLoads.set(url,loadPlayerModel(url,'helmeted'));const model=await helmetModelLoads.get(url);if(!model){helmetModelLoads.delete(url);throw Error('Detailed arrival armor could not load');}return model;});
@@ -1618,7 +1619,7 @@
     const sideX = frontZ, sideZ = -frontX;
     const groundHeight=(x,z)=>state.round===2?(window.heroIceTerrain?.height(x,z)??0):state.round===3?(window.modelVillageHeight?.(x,z)??0):0;
     const bodySize = window.heroCharacterSize(local)*(state.round===3?.68:1);
-    const flightLift = (state.round===3&&Number.isFinite(local.villageHeight)?local.villageHeight:groundHeight(px,pz))+(local.flying ? (local.flightHeight || 4.5) : 0);
+    const flightLift = (state.round===3&&Number.isFinite(local.villageHeight)?local.villageHeight:groundHeight(px,pz))+(local.flying ? (local.flightHeight || 4.5) : 0)+(local.climbing?Math.min(700,local.climbHeight||0)*.045:0);
     const desired = state.round===3&&!firstPerson&&!frontView ? new THREE.Vector3(px+1.1,flightLift+3.8,pz+(local.run?7.8:7)) : travelWorld && !firstPerson && !frontView ? new THREE.Vector3(px+1.4,4.1+(bodySize-1)*1.5+flightLift,pz+(local.run?8.8:7.2)) : firstPerson
       ? new THREE.Vector3(px, 2.18 * bodySize + flightLift, pz)
       : frontView
@@ -1669,7 +1670,7 @@
           y:state.round===3?q.z/.055+300:THREE.MathUtils.clamp(q.z/.055+300,ice?.bounds?.minY??-18000,ice?.bounds?.maxY??574)
         }:{x:local.x,y:local.y};
       };
-      for(const [key,rig] of rigs){const p=rig.userData.source;if(!p)continue;const pos=new THREE.Vector3(((p.x??700)-500)*.055,0,((p.y??285)-300)*.055);pos.y=state.round===3&&Number.isFinite(p.villageHeight)?p.villageHeight:groundHeight(pos.x,pos.z);const air=(state.round!==3&&p.jump>0?Math.sin(THREE.MathUtils.clamp((.76-p.jump)/.76,0,1)*Math.PI)*1.15:0)+(p.flying?(p.flightHeight||4.5):0)+(p.climbing?Math.min(110,p.climbHeight||0)*.045:0);footContact?.place(rig,pos,air);
+      for(const [key,rig] of rigs){const p=rig.userData.source;if(!p)continue;const pos=new THREE.Vector3(((p.x??700)-500)*.055,0,((p.y??285)-300)*.055);pos.y=state.round===3&&Number.isFinite(p.villageHeight)?p.villageHeight:groundHeight(pos.x,pos.z);wildclawPresentation?.pose(rig,p,t);const slam=window.WildclawMoves?.sample(p);const air=(slam?slam.lift:state.round!==3&&p.jump>0?Math.sin(THREE.MathUtils.clamp((.76-p.jump)/.76,0,1)*Math.PI)*1.15:0)+(p.flying?(p.flightHeight||4.5):0)+(p.climbing?Math.min(700,p.climbHeight||0)*.045:0);footContact?.place(rig,pos,air+(p.wildKnock?Math.sin(Math.min(1,p.wildKnock.age/.65)*Math.PI)*p.wildKnock.height:0));wildclawPresentation?.plantFist(rig,p,pos.y);
         if(state.round===3){
           // Village physics updates at 30 Hz but WebGL renders between physics
           // ticks. Smooth only the rendered position, never the collision state.
@@ -1780,6 +1781,7 @@
     heroLoadingLabel.textContent=characterModelStatus.get(playerKind)==='error'?heroName+' model unavailable. Reload to retry.':'Preparing '+heroName+'…';
     ruinedCanyon?.updateCamera(state,local,camera,localRig,dt,cameraMode,true);
     villageTransport?.update(state,camera,rigs,localKey,t);
+    wildclawPresentation?.update(state,rigs,camera,localKey,t,groundHeight,cameraMode);
     scenicBackground?.update(state,camera);
     if(!ruinedCanyon?.renderCloseup(renderer,camera))renderer.render(scene, camera);
   }
@@ -1808,6 +1810,7 @@
   }
   window.dispatchEvent(new Event('heroic-3d-ready'));
 })();
+
 
 
 

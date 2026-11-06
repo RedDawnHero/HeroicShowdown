@@ -225,7 +225,7 @@
   function simulate(dt){if(!state||state.phase!=='game'||state.intro)return;
     // Do not start the frozen-city battle timer or enemies until the actual 3D scene is ready.
     if(state.round===2&&['loading','error'].includes(window.heroFrozenCityModelStatus))return;
-    state.time-=dt;if(state.time<=0){state.time=0;state.roundEnded=true;state.roundReason='TIME UP';}if(state.clinic)state.clinic.cooldown=Math.max(0,state.clinic.cooldown-dt);for(const p of Object.values(state.players)){if(p.buried)continue;const blend=1-Math.exp(-dt*9);p.walkX=(p.walkX||0)+((p.fx||0)-(p.walkX||0))*blend;p.walkY=(p.walkY||0)+((p.fy||0)-(p.walkY||0))*blend;let x=p.walkX,y=p.walkY,n=Math.max(1,Math.hypot(x,y)),speed=p.dodge>0?440:(205+110*(p.runBlend||0));if(p.hero==='wildclaw'&&p.climbActive&&canClimbAt(p)){p.climbing=true;p.x=Math.max(34,Math.min(W-34,p.x+x/n*speed*dt));p.climbHeight=Math.max(0,Math.min(110,(p.climbHeight||0)-y*speed*dt));if(p.climbHeight===0&&y>0){p.climbing=false;p.climbActive=false;}}else{if(p.climbActive&&!canClimbAt(p))p.climbActive=false;p.climbing=false;p.climbHeight=0;p.x=Math.max(34,Math.min(W-34,p.x+x/n*speed*dt));p.y=Math.max(window.heroTravelProjection?-18000:82,Math.min((state.round===2&&Number.isFinite(window.heroIceTerrain?.bounds?.maxY))?window.heroIceTerrain.bounds.maxY:H-36,p.y+y/n*speed*dt));}if(p.dodge>0)p.dodge-=dt;if(p.jump>0)p.jump=Math.max(0,p.jump-dt);if(p.fireTime>0)p.fireTime-=dt;if(p.actionTime>0)p.actionTime-=dt;if(p.smashHit>0)p.smashHit=Math.max(0,p.smashHit-dt);if(!p.climbActive)p.climbing=false;if(state.clinic&&state.clinic.cooldown<=0&&p.hp<100&&Math.hypot(p.x-state.clinic.x,p.y-state.clinic.y)<58){const recovered=Math.min(35,100-p.hp);p.hp+=recovered;state.clinic.cooldown=22;say(`FIELD CLINIC · +${recovered} HEALTH`);}}
+    state.time-=dt;if(state.time<=0){state.time=0;state.roundEnded=true;state.roundReason='TIME UP';}if(state.clinic)state.clinic.cooldown=Math.max(0,state.clinic.cooldown-dt);for(const p of Object.values(state.players)){if(p.buried)continue;const blend=1-Math.exp(-dt*9);p.walkX=(p.walkX||0)+((p.fx||0)-(p.walkX||0))*blend;p.walkY=(p.walkY||0)+((p.fy||0)-(p.walkY||0))*blend;let x=p.walkX,y=p.walkY,n=Math.max(1,Math.hypot(x,y)),speed=p.dodge>0?440:(205+110*(p.runBlend||0));if(p.hero==='wildclaw'&&p.climbActive&&canClimbAt(p)){p.climbing=true;if(p.climbSurface){p.x+=-p.climbSurface.nz*x/n*speed*.55*dt;p.y+=p.climbSurface.nx*x/n*speed*.55*dt;}else p.x=Math.max(34,Math.min(W-34,p.x+x/n*speed*dt));p.climbHeight=Math.max(0,Math.min((p.climbSurface?.top||4.95)/.045,(p.climbHeight||0)-y*140*dt));if(p.climbHeight===0&&y>0){p.climbing=false;p.climbActive=false;}}else{if(p.climbActive&&!canClimbAt(p))p.climbActive=false;p.climbing=false;p.climbHeight=0;p.x=Math.max(34,Math.min(W-34,p.x+x/n*speed*dt));p.y=Math.max(window.heroTravelProjection?-18000:82,Math.min((state.round===2&&Number.isFinite(window.heroIceTerrain?.bounds?.maxY))?window.heroIceTerrain.bounds.maxY:H-36,p.y+y/n*speed*dt));}if(p.dodge>0)p.dodge-=dt;if(p.jump>0)p.jump=Math.max(0,p.jump-dt);if(p.fireTime>0)p.fireTime-=dt;if(p.actionTime>0)p.actionTime-=dt;if(p.smashHit>0)p.smashHit=Math.max(0,p.smashHit-dt);if(!p.climbActive)p.climbing=false;if(state.clinic&&state.clinic.cooldown<=0&&p.hp<100&&Math.hypot(p.x-state.clinic.x,p.y-state.clinic.y)<58){const recovered=Math.min(35,100-p.hp);p.hp+=recovered;state.clinic.cooldown=22;say(`FIELD CLINIC · +${recovered} HEALTH`);}}
     if(state.round===5){window.darkBossCombat.update(state,dt,say);}else{
     window.misfitCombat.update(state,dt,say);
     }
@@ -244,7 +244,7 @@
     state.darkStrike=null;state.darkEnraged=false;state.darkRageAnnounced=false;state.darkAttackTurn=0;state.finalBoss=false;state.finalStorm=null;state.finalAllies=[];state.finalCombo=null;state.finisherReady=false;state.finale=null;state.giant=false;state.roundEnded=false;state.roundReason='';state.bossBlock=0;state.bossAttack=1.5;state.bossX=700;state.bossY=285;
     state.hammerers=createHammerers();for(const h of state.hammerers)h.hp+=Math.max(0,state.round-1)*8;
     state.caster={x:370,y:320,hp:60+state.round*10,attack:3.5,casting:0,summons:0,dead:false};state.goons=[];state.shots=[];state.collapse=null;state.clinic={x:180,y:510,cooldown:0};state.ashenTransition=null;state.finImpact=null;state.misfitMelee=null;state.clueScene=null;
-    for(const p of Object.values(state.players)){p.hp=Math.max(50,p.hp);p.x=500;p.y=470;p.fx=p.fy=p.moveSpeed=0;p.action='';p.actionTime=0;p.buried=false;p.portalEntered=false;p.flying=false;p.flightHeight=0;p.climbing=false;p.jump=p.dodge=0;p.ecalSkill=null;p.finStunt=null;p.cometDash=null;p.seated=null;p.heldPhoto=null;p.inspectingPhoto=false;p.villageAirborne=false;p.villageVelocity=0;p.villageHeight=0;p.walkX=p.walkY=0;}
+    for(const p of Object.values(state.players)){p.hp=Math.max(50,p.hp);p.x=500;p.y=470;p.fx=p.fy=p.moveSpeed=0;p.action='';p.actionTime=0;p.buried=false;p.portalEntered=false;p.flying=false;p.flightHeight=0;p.climbing=false;p.jump=p.dodge=0;p.wildSlam=null;p.climbSurface=null;p.ecalSkill=null;p.finStunt=null;p.cometDash=null;p.seated=null;p.heldPhoto=null;p.inspectingPhoto=false;p.villageAirborne=false;p.villageVelocity=0;p.villageHeight=0;p.walkX=p.walkY=0;}
     state.civilians=[{x:485,y:135,saved:false},{x:812,y:408,saved:false},{x:191,y:475,saved:false}];clearOpeningInput();say('ROUND '+cleared+' CLEAR! LEVEL '+state.round+' · '+levelNames[state.round]);broadcast();
   }
 
@@ -351,7 +351,7 @@
   // Keep the existing networked game state authoritative while rendering its actors in a true 3D scene.
   const previousAct = act;
   act = function(p, kind) { if (kind === 'helmet') { const toggleAt=performance.now();if(toggleAt-(p.lastHelmetToggle??-Infinity)<350)return;p.lastHelmetToggle=toggleAt;p.helmet = !p.helmet; p.action = 'helmet'; p.actionTime = .8; say(p.helmet ? 'MASK ON · LASER READY' : 'MASK REMOVED'); const maskLabel = $('[data-action=\"helmet\"] small'); if (maskLabel) maskLabel.textContent = p.helmet ? 'REMOVE MASK' : 'PUT ON MASK'; broadcast(); return; } previousAct(p, kind); };
-  function canClimbAt(p){return (p.x<245&&p.y>150&&p.y<430)||(p.x>810&&p.y>145&&p.y<525)||(p.y<150&&p.x>285&&p.x<735);}
+  function canClimbAt(p){if(p.climbSurface)return window.WildclawMoves.onWall(p);return !window.heroTravelProjection&&((p.x<245&&p.y>150&&p.y<430)||(p.x>810&&p.y>145&&p.y<525)||(p.y<150&&p.x>285&&p.x<735));}
   const actionBeforeClimb=act;
   act=function(p,kind){if(kind==='climb'){if(p.hero!=='wildclaw'){say('Only Wildclaw can climb buildings');return;}if(p.climbActive){p.climbActive=false;p.climbing=false;say('WILDCLAW DROPS DOWN');}else if(canClimbAt(p)){p.climbActive=true;p.climbing=true;p.climbHeight=p.climbHeight||0;say('WILDCLAW CLIMBS! MOVE UP TO SCALE THE WALL');}else say('MOVE BESIDE A BUILDING FIRST');$('#abilityGrid [data-action=climb]')?.classList.toggle('pressed',!!p.climbActive);broadcast();return;}actionBeforeClimb(p,kind);};
   const controlsBeforeClimb=renderControls;
@@ -930,7 +930,7 @@
   modelNotice.style.cssText='position:fixed;left:20px;bottom:20px;z-index:30000;max-width:440px;padding:16px;background:#14202ff5;color:#fff;border:1px solid #efbd63;border-radius:8px;font:15px sans-serif';
   document.body.appendChild(modelNotice);
   window.heroModelLoadError=(message)=>{modelNotice.hidden=false;modelNotice.textContent=message+' Your saved models have not been removed. Reload the game to retry.';};
-  const load3DWorld = () => { const world = document.createElement('script'); world.src = 'world3d.js?v=scenic-background-1';world.onerror=()=>window.heroModelLoadError('The 3D game script could not load.'); document.body.appendChild(world); };
+  const load3DWorld = () => { const world = document.createElement('script'); world.src = 'world3d.js?v=wildclaw-impact-1';world.onerror=()=>window.heroModelLoadError('The 3D game script could not load.'); document.body.appendChild(world); };
   window.addEventListener('error',event=>{if(/world3d|model-village|village-radio/.test(event.filename||''))window.heroModelLoadError('3D startup error: '+event.message);});
   const prepare3DWorld = (attempt=0) => {
     Promise.all([import('three'), import('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js')]).then(([THREE, loaders]) => {
@@ -1087,7 +1087,7 @@
   const stuntCombos={stuntKick:['jump','kick','punch'],stuntCounter:['dodge','punch','jump'],stuntAerial:['jump','kick'],stuntFinisher:['dodge','dodge','punch','kick','jump','slam']};
   const beforeComboAct=act;
   let performingCombo=false;
-  function comboStrike(p,kind){performingCombo=true;try{return beforeComboAct(p,p.hero==='ecal'?(kind==='punch'?'ecalHeavy':kind==='slam'?'ecalSpin':kind):kind);}finally{performingCombo=false;}}
+  function comboStrike(p,kind){if(p.hero==='wildclaw'&&kind==='slam')return act(p,'slam');performingCombo=true;try{return beforeComboAct(p,p.hero==='ecal'?(kind==='punch'?'ecalHeavy':kind==='slam'?'ecalSpin':kind):kind);}finally{performingCombo=false;}}
   act=function(p,kind){if(!p||!['ecal','wildclaw'].includes(p.hero))return beforeComboAct(p,kind);if(stuntCombos[kind]){if(state.intro||state.finale||state.ashenTransition||p.buried||p.seated||p.stuntCombo)return;p.stuntCombo={kind,index:0,time:0};return;}if(kind==='stuntPunch')return comboStrike(p,'punch');if(p.stuntCombo&&!performingCombo)p.stuntCombo=null;return beforeComboAct(p,kind);};
   const beforeComboSim=simulate;simulate=function(dt){beforeComboSim(dt);if(!state||state.phase!=='game'||state.intro||state.finale||state.ashenTransition)return;for(const p of Object.values(state.players)){const c=p.stuntCombo;if(!c)continue;c.time-=dt;if(c.time<=0){const steps=stuntCombos[c.kind];if(c.index>=steps.length){p.stuntCombo=null;continue;}const move=steps[c.index++];comboStrike(p,move);c.time=move==='jump'?.42:move==='dodge'?(p.hero==='wildclaw'?1.25:.55):.44;}}};
   const beforeComboControls=renderControls;renderControls=function(){beforeComboControls();const p=state?.players?.[myId||'host'];if(!['ecal','wildclaw'].includes(p?.hero))return;for(const [kind,label] of [['stuntPunch','POWER PUNCH'],['stuntKick','STUNT KICK'],['stuntCounter','DODGE + COUNTER'],['stuntAerial','AERIAL KICK'],['stuntFinisher','STUNT FINISHER']])if(!document.querySelector('[data-action="'+kind+'"]')){const b=document.createElement('button');b.className='ability';b.dataset.action=kind;b.textContent=label;document.querySelector('#abilityGrid').appendChild(b);}};
@@ -1345,8 +1345,33 @@
   };
   const beforeSafePathHUD=renderHUD;renderHUD=function(){beforeSafePathHUD();const available=state?.phase==='game'&&!state.villageDeparture&&!state.canyonArrival&&[2,3].includes(state.round)&&!state.intro&&!state.finale&&!state.ashenTransition&&!state.clueScene&&!state.radioScene;safePathButton.hidden=!available;iceGuideButton.hidden=!available||state.round!==2;iceGuideButton.disabled=window.heroIceLandscapeStatus!=="ready";clueGuideButton.hidden=!available||state.round!==3||!state.homeStudy||state.homeStudy.loading<3.5||state.homeStudy.found.every(Boolean);};
 
+
+  function wildclawCanAct(p){return p?.hero==='wildclaw'&&state?.phase==='game'&&state.round!==3&&!state.intro&&state.heroModelsReady&&!state.finale&&!state.ashenTransition&&!state.clueScene&&!state.radioScene&&!state.finImpact&&!state.finalCombo&&!state.finisherReady&&!state.villageDeparture&&!state.cosmicArrival&&!state.canyonArrival&&!frostPlaying()&&(state.round!==2||window.heroIceLandscapeStatus==='ready')&&(state.round!==5||window.campaignFinalCastReady===true);}
+  const beforeWildclawAct=act;act=function(p,kind){
+    if(p?.hero==='wildclaw'&&['slam','climb'].includes(kind)){if(!wildclawCanAct(p))return;
+      if(kind==='slam'){if(window.WildclawMoves.start(p,performance.now())){say('WILDCLAW · GROUND SLAM');broadcast();}return;}
+      if(p.wildSlam)return;if(p.climbActive){p.climbActive=p.climbing=false;p.climbSurface=null;p.climbHeight=0;say('WILDCLAW RELEASES THE WALL');broadcast();return;}
+      const wall=window.findWildclawClimbSurface?.(p);if(!wall){say('MOVE BESIDE A BUILDING · C TO CLIMB');return;}
+      p.climbSurface=wall;p.x=wall.x/.055+500;p.y=wall.z/.055+300;p.climbActive=p.climbing=true;p.climbHeight=0;p.jump=0;p.moveYaw=Math.atan2(-wall.nx,-wall.nz);p.face=p.moveYaw;say('WALL CLIMB · W/S UP/DOWN · A/D SIDEWAYS · R SLAM');broadcast();return;
+    }
+    if(p?.wildSlam)return;return beforeWildclawAct(p,kind);
+  };
+  function wildclawImpact(p){
+    const within=e=>e&&Math.hypot(e.x-p.x,e.y-p.y)<190;
+    for(const enemy of [...state.goons])if(within(enemy)){enemy.hp-=2;window.WildclawMoves.knock(state,p,enemy);enemy.attack=Math.max(.75,enemy.attack||0);if(enemy.hp<=0){state.goons=state.goons.filter(e=>e!==enemy);p.score+=4;earnHealth(p,10);}}
+    for(const enemy of [...(state.hammerers||[]),state.caster].filter(e=>e&&!e.dead))if(within(enemy)){enemy.hp-=38;window.WildclawMoves.knock(state,p,enemy);enemy.attack=Math.max(.8,enemy.attack||0);enemy.bossSmash=0;if(enemy.hp<=0){enemy.hp=0;enemy.dead=true;p.score+=8;earnHealth(p,15);}}
+    if(state.burialDone&&state.boss>0&&Math.hypot(state.bossX-p.x,state.bossY-p.y)<190){state.boss=Math.max(0,state.boss-22);p.score+=7;const dx=state.bossX-p.x,dy=state.bossY-p.y,d=Math.hypot(dx,dy)||1;const old={x:state.bossX,y:state.bossY},boss={x:state.bossX+dx/d*35,y:state.bossY+dy/d*35};if(state.round===2)window.heroIceTerrain?.resolve(boss,old);state.bossX=boss.x;state.bossY=boss.y;if(state.boss<=0){state.roundEnded=true;state.roundReason='BOSS DOWN';}}
+    state.danger=Math.max(0,state.danger-3);playCombatSound('slam');say('GROUND SLAM · SHOCKWAVE!');broadcast();
+  }
+  const beforeWildclawSim=simulate;simulate=function(dt){
+    const held=[];for(const p of Object.values(state?.players||{}))if(p.wildSlam){held.push([p,p.fx,p.fy]);p.fx=p.fy=p.walkX=p.walkY=0;p.jump=window.WildclawMoves.sample(p).lift>.05?.38:0;}
+    const round=state?.round;beforeWildclawSim(dt);for(const[p,x,y]of held){p.fx=x;p.fy=y;}
+    if(state?.phase==='game'&&round===state.round&&!state.intro&&!state.finale&&!state.ashenTransition&&!state.cosmicArrival){if(state.heroModelsReady&&(state.round!==2||window.heroIceLandscapeStatus==='ready'))window.WildclawMoves.step(state,dt,wildclawImpact);}else for(const[p]of held){p.wildSlam=null;p.jump=0;}
+  };
+
   prepare3DWorld();
 })();
+
 
 
 
