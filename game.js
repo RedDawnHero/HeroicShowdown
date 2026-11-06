@@ -772,7 +772,7 @@
   let iceState=null,icePlaced=new WeakSet();
   const iceBodies=()=>[...Object.values(state.players),...(state.hammerers||[]).filter(h=>!h.dead),...(state.goons||[]),...(state.caster&&!state.caster.dead?[state.caster]:[]),...(state.civilians||[])];
   function prepareIce(){
-    const terrain=window.heroIceTerrain;if(!terrain||typeof terrain.snap!=='function'||typeof terrain.world!=='function')return;
+    const terrain=window.heroIceTerrain;window.installIceMovementSafety?.(terrain);if(!terrain||typeof terrain.snap!=='function'||typeof terrain.world!=='function')return;
     if(iceState!==state){iceState=state;icePlaced=new WeakSet();const boss={x:state.bossX,y:state.bossY};terrain.snap(boss);state.bossX=boss.x;state.bossY=boss.y;}
     const occupied=[];
     for(const p of iceBodies())if(icePlaced.has(p))occupied.push(terrain.world(p));
@@ -1316,9 +1316,11 @@
   };
 
 
-  const pathUiStyle=document.createElement("style");pathUiStyle.textContent="#returnSafePath[hidden],#walkToClue[hidden],#continueCampaign[hidden],#finalFinisher[hidden]{display:none!important}";document.head.appendChild(pathUiStyle);
+  const pathUiStyle=document.createElement("style");pathUiStyle.textContent="#returnSafePath[hidden],#walkIceRoute[hidden],#walkToClue[hidden],#continueCampaign[hidden],#finalFinisher[hidden]{display:none!important}";document.head.appendChild(pathUiStyle);
   const safePathButton=document.createElement('button');safePathButton.type='button';safePathButton.id='returnSafePath';safePathButton.textContent='RETURN TO SAFE PATH';safePathButton.hidden=true;safePathButton.style.cssText='position:absolute;top:82px;right:12px;z-index:25;padding:9px 12px;background:#173043;color:#fff0c8;border:1px solid #d9bd77;border-radius:6px;font:800 11px sans-serif';$('.arena-wrap').appendChild(safePathButton);
   safePathButton.onclick=()=>{clearOpeningInput();arenaTarget=null;action('recoverMovement');};
+  const iceGuideButton=document.createElement("button");iceGuideButton.type="button";iceGuideButton.id="walkIceRoute";iceGuideButton.className="btn btn-gold";iceGuideButton.textContent="FIND ROUTE TO MR. MISFIT";iceGuideButton.hidden=true;iceGuideButton.style.cssText="display:block;margin:10px auto;padding:12px;font-size:12px;max-width:95%";$(".arena-wrap").insertAdjacentElement("afterend",iceGuideButton);
+  iceGuideButton.onclick=()=>{const me=state?.players[myId||"host"]||state?.players.host,ice=window.heroIceTerrain;if(!me||state.round!==2||!ice?.direction)return;const dx=me.x-state.bossX,dy=me.y-state.bossY,d=Math.hypot(dx,dy)||1,goal={x:state.bossX+dx/d*85,y:state.bossY+dy/d*85};ice.snap?.(goal);arenaTarget=goal;say("FOLLOWING A CLEAR ICE ROUTE · defeat Mr. Misfit to reach the village clues");};
   const clueGuideButton=document.createElement('button');clueGuideButton.type='button';clueGuideButton.id='walkToClue';clueGuideButton.className='btn btn-gold';clueGuideButton.textContent='WALK TO NEXT CLUE';clueGuideButton.hidden=true;homePanel.appendChild(clueGuideButton);
   clueGuideButton.onclick=()=>{const me=state?.players[myId||'host']||state?.players.host;if(!me)return;window.resetVillageNavigation?.(me);if(me.seated)action('sitChair');if(me.inspectingPhoto)action('putPhotoAway');const index=window.homeClues.findIndex((c,i)=>!state.homeStudy?.found[i]);if(index>=0){const clue=window.homeClues[index];arenaTarget={x:clue.x,y:clue.y,clueGuide:true};say('FOLLOWING THE SAFE ROUTE · manual movement cancels');}};
   const beforeSafePathAct=act;act=function(p,kind){
@@ -1329,7 +1331,7 @@
     p.fx=p.fy=p.walkX=p.walkY=p.moveSpeed=0;p.villageVelocity=0;p.villageAirborne=false;p.seated=null;p.inspectingPhoto=false;p.heldPhoto=null;p.buried=false;p.climbing=false;p.climbActive=false;p.flying=false;p.flightHeight=0;p.jump=p.dodge=0;p.finStunt=null;p.ecalSkill=null;p.cometDash=null;p.action='';p.actionTime=0;
     window.resetVillageNavigation?.(p);say('BACK ON THE SAFE PATH · your score and evidence are kept');broadcast();
   };
-  const beforeSafePathHUD=renderHUD;renderHUD=function(){beforeSafePathHUD();const available=state?.phase==='game'&&[2,3].includes(state.round)&&!state.intro&&!state.finale&&!state.ashenTransition&&!state.clueScene&&!state.radioScene;safePathButton.hidden=!available;clueGuideButton.hidden=!available||state.round!==3||!state.homeStudy||state.homeStudy.loading<3.5||state.homeStudy.found.every(Boolean);};
+  const beforeSafePathHUD=renderHUD;renderHUD=function(){beforeSafePathHUD();const available=state?.phase==='game'&&[2,3].includes(state.round)&&!state.intro&&!state.finale&&!state.ashenTransition&&!state.clueScene&&!state.radioScene;safePathButton.hidden=!available;iceGuideButton.hidden=!available||state.round!==2;iceGuideButton.disabled=window.heroIceLandscapeStatus!=="ready";clueGuideButton.hidden=!available||state.round!==3||!state.homeStudy||state.homeStudy.loading<3.5||state.homeStudy.found.every(Boolean);};
 
   prepare3DWorld();
 })();
