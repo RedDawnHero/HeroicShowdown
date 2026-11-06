@@ -229,7 +229,7 @@
     camera.position.copy(focus).add(delta);
   };
   window.modelVillageReady=()=>ready;
-  return {update(active,p,t){root.visible=active;crowdInfo.hidden=!active||(crowdState.villagers==='ready'&&crowdState.companions==='ready');const crowdCaption=crowdState.villagers==='error'?'Human villagers could not load.':crowdState.villagers==='ready'?(crowdState.companions==='error'?'79 human villagers ready · companions could not load.':'79 human villagers ready · preparing companions…'):'Preparing the original human villagers…';if(crowdText.textContent!==crowdCaption)crowdText.textContent=crowdCaption;crowdRetry.hidden=!(crowdState.villagers==='error'||crowdState.companions==='error');status.style.display=active&&(!ready||failed)?'block':'none';if(!active)return;startLoading();scene.background=new T.Color(0xd6ac79);scene.fog.color.setHex(0xb99a79);scene.fog.near=38;scene.fog.far=190;skyEffects.update(t,p);if(villagers){try{villagers.update(t,{x:p.x,y:window.modelVillageHeight(p.x,p.z)??bridgeY,z:p.z});}catch(error){console.error('Villager animation paused:',error);villagers=null;}}riverSurface.position.set(p.x,0,p.z);
+  return {update(active,p,t){root.visible=active;crowdInfo.hidden=!active||(crowdState.villagers==='ready'&&crowdState.companions==='ready');const crowdCaption=crowdState.villagers==='error'?'Human villagers could not load.':crowdState.villagers==='ready'?(crowdState.companions==='error'?'79 human villagers ready · companions could not load.':'79 human villagers ready · preparing companions…'):'Preparing the original human villagers…';if(crowdText.textContent!==crowdCaption)crowdText.textContent=crowdCaption;crowdRetry.hidden=!(crowdState.villagers==='error'||crowdState.companions==='error');status.style.display=active&&(!ready||failed)?'block':'none';if(!active)return;startLoading();scene.background=new T.Color(0xc4d9e9);scene.fog.color.setHex(0xb5cbdc);scene.fog.near=38;scene.fog.far=190;skyEffects.update(t,p);if(villagers){try{villagers.update(t,{x:p.x,y:window.modelVillageHeight(p.x,p.z)??bridgeY,z:p.z});}catch(error){console.error('Villager animation paused:',error);villagers=null;}}riverSurface.position.set(p.x,0,p.z);
     const heroGround=window.modelVillageHeight(p.x,p.z)??bridgeY;
     heroFill.position.set(p.x+4,heroGround+7,p.z+6);heroFill.target.position.set(p.x,heroGround+1.3,p.z);
     windowLights.forEach(w=>{w.material.emissiveIntensity=2.4*(1+.025*Math.sin(t*2+w.phase));});
@@ -237,5 +237,6 @@
     if(companions){try{companions.update(t,{x:p.x,y:window.modelVillageHeight(p.x,p.z)??bridgeY,z:p.z});}catch(error){console.error('Companion animation paused',error);companions=null;}}flowTime.value=t;clueProps.forEach((prop,i)=>{prop.visible=!window.heroArena3DState?.()?.state?.homeStudy?.found?.[i];});cluePlaceholders.forEach((photo,i)=>{photo.visible=!clueProps[i]&&!window.heroArena3DState?.()?.state?.homeStudy?.found?.[i];});markers.forEach((m,i)=>{m.visible=!window.heroArena3DState?.()?.state?.homeStudy?.found?.[i];m.rotation.z=t*.2;});}};
  };
 })();
+
 
 
