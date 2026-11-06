@@ -59,11 +59,9 @@
   crowdRetry.onclick=loadVillageActors;
   let ready=false,failed=false;
   let started=false;function startLoading(){if(started)return;started=true;
-  load('village').then(model=>{model.scale.setScalar(120);root.add(model);model.traverse(o=>{if(o.isMesh){o.receiveShadow=true;o.castShadow=true;o.castShadow=false;surfaces.push(o);for(const m of (Array.isArray(o.material)?o.material:[o.material]))gradeVillage(m);}});ready=true;loadClueProps();loadVillageActors();status.textContent='Village ready · loading water…';return load('water');}).then(model=>{
+  load('village').then(model=>{model.scale.setScalar(120);root.add(model);model.traverse(o=>{if(o.isMesh){o.receiveShadow=true;o.castShadow=true;o.castShadow=false;surfaces.push(o);for(const m of (Array.isArray(o.material)?o.material:[o.material]))gradeVillage(m);}});ready=true;loadClueProps();loadVillageActors();status.textContent='Village ready · loading water…';return new T.TextureLoader().loadAsync('assets/level3-water-basecolor.jpg?v=original-1');}).then(waterMap=>{
     // Retain the supplied water's texture on a flat, horizon-sized surface.
-    let waterMap=null;
-    model.traverse(o=>{if(o.isMesh&&!waterMap){for(const m of (Array.isArray(o.material)?o.material:[o.material]))if(m.map){waterMap=m.map;break;}}});
-    if(waterMap){waterMap.wrapS=waterMap.wrapT=T.RepeatWrapping;waterMap.needsUpdate=true;riverMaterial.uniforms.waterMap.value=waterMap;riverMaterial.uniforms.hasWaterMap.value=1;}
+    if(waterMap){waterMap.flipY=false;waterMap.colorSpace=T.SRGBColorSpace;waterMap.wrapS=waterMap.wrapT=T.RepeatWrapping;waterMap.needsUpdate=true;riverMaterial.uniforms.waterMap.value=waterMap;riverMaterial.uniforms.hasWaterMap.value=1;}
     water=riverSurface;
     ready=true;status.style.display='none';
   }).catch(e=>{const originalVillageLoaded=ready;failed=!originalVillageLoaded;if(!originalVillageLoaded){fallback();loadVillageActors();}ready=true;status.textContent=originalVillageLoaded?'Village loaded · optional water is unavailable':'Village preview · original 3D terrain is unavailable';console.error(e);});}
