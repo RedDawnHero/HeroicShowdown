@@ -29,8 +29,8 @@
     return;
   }
   let graphicsLost=false;const graphicsNotice=document.createElement('div');graphicsNotice.hidden=true;graphicsNotice.setAttribute('role','status');graphicsNotice.style.cssText='position:absolute;inset:0;background:#101b2f;color:#fff2cf;z-index:95;display:grid;place-items:center;text-align:center;padding:24px;font:600 18px sans-serif';graphicsNotice.textContent='Restoring the 3D view… Your mission is paused.';wrap.appendChild(graphicsNotice);const graphicsStyle=document.createElement('style');graphicsStyle.textContent='#arena3d{background:#101b2f}[data-graphics-recovery][hidden]{display:none!important}';graphicsNotice.dataset.graphicsRecovery='';document.head.appendChild(graphicsStyle);
-  canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();graphicsLost=true;window.heroGraphicsPaused=true;window.dispatchEvent(new CustomEvent('hero-graphics-pause',{detail:{paused:true}}));graphicsNotice.hidden=false;});
-  canvas.addEventListener('webglcontextrestored',()=>{graphicsLost=false;window.heroGraphicsPaused=false;window.dispatchEvent(new CustomEvent('hero-graphics-pause',{detail:{paused:false}}));graphicsNotice.hidden=true;renderer.setPixelRatio(1);resize();});
+  canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();graphicsLost=true;window.heroGraphicsPaused=true;window.heroMenuViewer?.recovering(true);window.dispatchEvent(new CustomEvent('hero-graphics-pause',{detail:{paused:true}}));graphicsNotice.hidden=false;});
+  canvas.addEventListener('webglcontextrestored',()=>{graphicsLost=false;window.heroGraphicsPaused=false;window.heroMenuViewer?.recovering(false);window.dispatchEvent(new CustomEvent('hero-graphics-pause',{detail:{paused:false}}));graphicsNotice.hidden=true;renderer.setPixelRatio(1);resize();});
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -1427,6 +1427,7 @@
     backdropCanvas.width = Math.round(rect.width * ratio); backdropCanvas.height = Math.round(rect.height * ratio); details.width=backdropCanvas.width; details.height=backdropCanvas.height;
   }
   new ResizeObserver(resize).observe(wrap); window.addEventListener('resize', resize); resize();
+  const menuModelSelector=window.createHeroModelSelector?.(THREE,renderer,canvas,wrap,resize);window.heroMenuViewer=menuModelSelector;let menuWasActive=false;
   const naturalWalk=window.createNaturalWalk?.(THREE);
   const footContact = window.createFootContact?.(THREE); const groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0), groundRay=new THREE.Raycaster();
   const travelWorld=window.createTravelWorld?.(THREE,scene,renderer);
@@ -1516,6 +1517,7 @@
     const dt = Math.min(.045, (now - lastFrame) / 1000); lastFrame = now;
     const data = window.heroArena3DState();
     const state = data && data.state;
+    if(menuModelSelector?.render(document.querySelector('#home')?.classList.contains('active'),now/1000)){if(!menuWasActive){coastalTruth?.hide();cosmicArrival?.hide();}menuWasActive=true;details.style.visibility='hidden';backdropCanvas.style.visibility='hidden';heroLoadingLabel.hidden=true;return;}menuWasActive=false;
     ruinedCanyon?.setState(state);
     window.syncDetailedHeroPreparation?.(state);
     if(!state||state.phase!=='game'||state.round!==3)window.updateVillageClueCinematic?.(THREE,state,camera,rigs);
