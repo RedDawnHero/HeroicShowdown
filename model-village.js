@@ -40,14 +40,7 @@
       `);
     };material.customProgramCacheKey=()=> 'village-warm-timber-v3';material.needsUpdate=true;
   }
-  function loadClueProps(){
-    data.clues.forEach(([x,y,z],i)=>load('clue-'+i).then(model=>{
-      const bounds=new T.Box3().setFromObject(model),size=bounds.getSize(new T.Vector3()),center=bounds.getCenter(new T.Vector3());
-      const scale=.95/Math.max(size.x,size.y,size.z);model.scale.setScalar(scale);model.position.copy(center).multiplyScalar(-scale);
-      const prop=new T.Group();prop.add(model);prop.rotation.x=-Math.PI/2;prop.position.set(x,y+.04,z);root.add(prop);
-      clueProps[i]=prop;if(cluePlaceholders[i])cluePlaceholders[i].visible=false;
-    }).catch(error=>console.warn('Clue prop could not load',i,error)));
-  }
+  function loadClueProps(){} // Three glowing discovery markers; no photograph pickups.
   let villagers=null,companions=null;
   const crowdState={villagers:'idle',companions:'idle'},crowdInfo=document.createElement('div'),crowdText=document.createElement('span'),crowdRetry=document.createElement('button');
   crowdInfo.dataset.villageCrowd='';crowdInfo.hidden=true;crowdInfo.setAttribute('role','status');crowdInfo.style.cssText='position:absolute;left:20px;top:105px;z-index:17;max-width:280px;padding:10px;background:#102235ed;color:#fff2d6;font:600 12px sans-serif;border-radius:6px';crowdRetry.type='button';crowdRetry.textContent='RETRY PEOPLE LOADING';crowdRetry.style.cssText='margin-left:8px;padding:7px';crowdInfo.append(crowdText,crowdRetry);document.querySelector('.arena-wrap').appendChild(crowdInfo);
@@ -130,7 +123,7 @@
   }
   // Warm divided windows on the clue houses, with visible timber mullions.
   const windowLights=[];
-  data.clues.forEach(([x,y,z],index)=>{
+  data.clues.slice(0,3).forEach(([x,y,z],index)=>{
     const paneMaterial=new T.MeshStandardMaterial({color:0xffd495,emissive:0xffad49,emissiveIntensity:2.4,roughness:.6});
     const trim=new T.MeshStandardMaterial({color:0x382c20,roughness:.85});
     for(const side of [-1,1]){
@@ -142,7 +135,7 @@
     }
     windowLights.push({material:paneMaterial,phase:index*1.8});
   });
-  data.clues.forEach(([x,y,z])=>addVillageLamp(x-1.25,y+2.05,z+1.3,true));
+  data.clues.slice(0,3).forEach(([x,y,z])=>addVillageLamp(x-1.25,y+2.05,z+1.3,true));
   for(const x of [-8,-3,3,8])addVillageLamp(x,bridgeY+1.35,bridgeZ+1.52,false);
 
   // Solid timber clue cabins replace the open test boxes. The evidence and
@@ -156,7 +149,7 @@
     part.receiveShadow=true;part.castShadow=true;parent.add(part);
     return part;
   }
-  data.clues.forEach(([x,y,z],i)=>{
+  data.clues.slice(0,3).forEach(([x,y,z],i)=>{
     const room=new T.Group();room.position.set(x,y,z);root.add(room);
     // Open doorway faces the visitor. The side walls match the glowing windows.
     cabinPanel(room,3.25,.16,3.35,0,-.08,0);
@@ -235,7 +228,7 @@
     heroFill.position.set(p.x+4,heroGround+7,p.z+6);heroFill.target.position.set(p.x,heroGround+1.3,p.z);
     windowLights.forEach(w=>{w.material.emissiveIntensity=2.4*(1+.025*Math.sin(t*2+w.phase));});
     lamps.forEach(lamp=>{const flicker=1+Math.sin(t*2.3+lamp.phase)*.035+Math.sin(t*5.7+lamp.phase)*.015;lamp.glass.emissiveIntensity=3.2*flicker;lamp.glow.material.opacity=.85*flicker;if(lamp.source)lamp.source.intensity=3.5*flicker;});
-    if(companions){try{companions.update(t,{x:p.x,y:window.modelVillageHeight(p.x,p.z)??bridgeY,z:p.z});}catch(error){console.error('Companion animation paused',error);companions=null;}}flowTime.value=t;clueProps.forEach((prop,i)=>{prop.visible=!window.heroArena3DState?.()?.state?.homeStudy?.found?.[i];});cluePlaceholders.forEach((photo,i)=>{photo.visible=!clueProps[i]&&!window.heroArena3DState?.()?.state?.homeStudy?.found?.[i];});markers.forEach((m,i)=>{m.visible=!window.heroArena3DState?.()?.state?.homeStudy?.found?.[i];m.rotation.z=t*.2;});}};
+    if(companions){try{companions.update(t,{x:p.x,y:window.modelVillageHeight(p.x,p.z)??bridgeY,z:p.z});}catch(error){console.error('Companion animation paused',error);companions=null;}}flowTime.value=t;clueProps.forEach((prop,i)=>{prop.visible=!window.heroArena3DState?.()?.state?.homeStudy?.found?.[i];});cluePlaceholders.forEach((photo,i)=>{photo.visible=false;});markers.forEach((m,i)=>{m.visible=!window.heroArena3DState?.()?.state?.homeStudy?.found?.[i];m.rotation.z=t*.2;});}};
  };
 })();
 

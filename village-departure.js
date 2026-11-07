@@ -2,7 +2,7 @@
 (()=>{
   const clamp=x=>Math.max(0,Math.min(1,x)),ease=x=>{x=clamp(x);return x*x*(3-2*x);};
   window.VillageDeparture={
-    canStart:s=>s?.phase==='game'&&s.round===3&&!s.clueScene&&!s.radioScene&&s.homeStudy?.cinematicSeen&&s.homeStudy.found.length===4&&s.homeStudy.found.every(Boolean),
+    canStart:s=>s?.phase==='game'&&s.round===3&&!s.clueScene&&!s.radioScene&&s.homeStudy?.cinematicSeen&&s.homeStudy.found.length>=3&&s.homeStudy.found.slice(0,3).every(Boolean),
     begin(s){if(s.villageDeparture||!this.canStart(s))return false;const landing={x:500+3/.055,y:300-4/.055};s.villageDeparture={id:Date.now(),stage:s.homeStudy.transportLanded?'waiting':'landing',age:0,x:landing.x,y:landing.y,starts:Object.fromEntries(Object.entries(s.players).map(([id,p])=>[id,{x:p.x,y:p.y}]))};for(const p of Object.values(s.players)){p.heldPhoto=null;p.inspectingPhoto=false;p.seated=null;p.fx=p.fy=p.moveSpeed=0;}return true;},
     board(s){const c=s.villageDeparture;if(c?.stage!=='waiting')return false;c.stage='boarding';c.age=0;return true;},
     step(s,dt,ready){const c=s.villageDeparture;if(!c)return false;for(const p of Object.values(s.players)){p.run=false;p.jump=0;p.fx=p.fy=p.moveSpeed=0;}if(!ready)return false;c.age+=Math.min(.05,Math.max(0,dt));if(c.stage==='landing'&&c.age>=6){c.stage='waiting';c.age=0;}if(c.stage==='boarding'){const u=ease(c.age/5);for(const [id,p]of Object.entries(s.players)){const a=c.starts[id]||c.starts.host,slot=Object.keys(s.players).indexOf(id);p.x=a.x+(c.x+45-a.x)*u;p.y=a.y+(c.y+18+slot*2-a.y)*u;p.fx=c.age<5?.5:0;p.fy=c.age<5?-.5:0;p.moveSpeed=c.age<5?70:0;}if(c.age>=6){c.stage='takeoff';c.age=0;}}if(c.stage==='takeoff'&&c.age>=5)return true;return false;}

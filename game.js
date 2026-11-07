@@ -963,20 +963,20 @@
     if(!state.homeStudy||state.homeStudy.loading<3.5)return;
     if(kind==='jump'){if(!p.inspectingPhoto&&!p.seated&&!p.villageAirborne){p.villageHeight=window.modelVillageHeight?.((p.x-500)*.055,(p.y-300)*.055)??p.villageHeight??0;p.villageVelocity=42;p.villageAirborne=true;p.jump=.76;broadcast();}return;}
     if(kind==='putPhotoAway'){p.heldPhoto=null;p.inspectingPhoto=false;broadcast();return;}
-    if(kind.startsWith('reviewPhoto:')){const i=Number(kind.split(':')[1]);if(state.homeStudy.found[i]){p.heldPhoto=i;p.inspectingPhoto=true;p.fx=0;p.fy=0;broadcast();}return;}
+    if(kind.startsWith('reviewPhoto:'))return;
     const study=state.homeStudy;
     if(kind==='studyEvidence'){
       if(window.VillageClueScene.photosFound(study)&&!window.homeClues.some((c,i)=>!study.found[i]&&Math.hypot(c.x-p.x,c.y-p.y)<65)){window.VillageClueScene.begin(state,p);broadcast();return;}
       const i=window.homeClues.findIndex((c,i)=>!study.found[i]&&Math.hypot(c.x-p.x,c.y-p.y)<65);
       if(i<0){say('WALK TO A GLOWING EVIDENCE TABLE');return;}
-      p.heldPhoto=i;p.inspectingPhoto=true;p.fx=0;p.fy=0;study.found[i]=true;study.message=window.homeClues[i].text;p.score+=10;say('EVIDENCE RECOVERED · '+window.homeClues[i].title.toUpperCase());broadcast();
+      p.heldPhoto=null;p.inspectingPhoto=false;study.found[i]=true;study.message=window.homeClues[i].text;p.score+=10;say('EVIDENCE RECOVERED · '+window.homeClues[i].title.toUpperCase());broadcast();
     }
   };
   const preHomeSimulate=simulate;
   simulate=function(dt){
     if(state?.round!==3||state.phase!=='game')return preHomeSimulate(dt);
     if(!state.homeStudy){
-      state.homeStudy={loading:0,found:[false,false,false,false],message:'You are home. Find three old photographs and a revenge note to discover whether Mr. Misfit was a distraction.'};
+      state.homeStudy={loading:0,found:[false,false,false],message:'You are home. Find three clues to discover whether Mr. Misfit was a distraction.'};
       state.hammerers=[];state.goons=[];state.shots=[];state.caster=null;state.civilians=[];state.clinic=null;state.danger=0;state.boss=0;state.roundEnded=false;
       Object.values(state.players).forEach((p,i)=>{p.x=window.modelVillageSpawn?.x??245;p.y=window.modelVillageSpawn?.y??380;p.heldPhoto=null;p.inspectingPhoto=false;p.hp=100;p.fx=0;p.fy=0;p.buried=false;p.flying=false;p.climbing=false;p.jump=0;p.dodge=0;p.action='';p.fireTime=0;});
     }
@@ -1375,6 +1375,8 @@
   const beforeCoastalTruthHUD=renderHUD;renderHUD=function(){beforeCoastalTruthHUD();const playing=!!state?.clueScene;$('#game').classList.toggle('truth-cinematic-playing',playing);if(playing){homePanel.hidden=true;photoViewer.hidden=true;}else if(state?.round===3&&window.VillageClueScene.photosFound(state.homeStudy)&&!window.VillageClueScene.readyForTruth(state.homeStudy))homeText.textContent='Three photographs recovered. Find the revenge note to uncover the truth.';};
 
   const beforePeacefulVillageAct=act;act=function(p,kind){if(window.VillageMoves?.handle(state,p,kind,performance.now())){broadcast();return;}return beforePeacefulVillageAct(p,kind);};
+  const beforeAutoCluesSim=simulate;simulate=function(dt){beforeAutoCluesSim(dt);if(state?.phase!=='game'||state.round!==3||!state.homeStudy||state.homeStudy.loading<3.5||state.clueScene||state.radioScene||state.villageDeparture||state.homeStudy.cinematicSeen||window.modelVillageReady?.()===false)return;for(const p of Object.values(state.players)){if(p.seated||p.inspectingPhoto)continue;const near=window.homeClues.some((c,i)=>!state.homeStudy.found[i]&&Math.hypot(c.x-p.x,c.y-p.y)<65);if(near){act(p,'studyEvidence');if(state.clueScene)break;}}};
+  const beforeThreeClueHUD=renderHUD;renderHUD=function(){beforeThreeClueHUD();if(state?.round===3&&state.homeStudy){homeButton.hidden=true;photoInventory.hidden=true;photoViewer.hidden=true;homeTitle.textContent='LEVEL 3 · FIND THREE CLUES';if(!state.clueScene)homeText.textContent=state.homeStudy.cinematicSeen?'The heroes are ready. Board the transport.':state.homeStudy.found.filter(Boolean).length+'/3 clues found. Walk up to the glowing clue markers. The scene starts automatically after the third.';}};
   prepare3DWorld();
 $('#createRoom').disabled=false;$('#joinRoom').disabled=false;const startupStatus=$('#menuStartupStatus');if(startupStatus){startupStatus.textContent='Game controls ready';startupStatus.hidden=true;}
   })();
