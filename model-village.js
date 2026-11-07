@@ -17,7 +17,7 @@
  window.createHomeVillage=(T,scene)=>{
   const root=new T.Group();root.visible=false;scene.add(root);let water;const riverTiles=[];const flowTime={value:0};const clueProps=[],cluePlaceholders=[];const markers=[];const surfaces=[];
   const loader=new window.GLTFLoader();
-  function load(key){if(['villagers','finnew-companions'].includes(key))return window.loadVillagePeopleAsset(key,loader);return new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error(key+' loading timed out')),45000);const success=value=>{clearTimeout(timeout);resolve(value);};const script=document.createElement('script');script.src='assets/level3-'+key+'-data.js'+(key==='villagers'?'?v=crowd79-lod-3':'');script.onerror=reject;script.onload=()=>{try{const raw=atob(window.level3ModelData[key]),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);delete window.level3ModelData[key];loader.parse(bytes.buffer,'',g=>success(g.scene),reject);}catch(e){reject(e);}script.remove();};document.head.appendChild(script);});}
+  function load(key){if(key==='village')return window.loadOriginalVillageModel(loader,message=>{status.textContent=message;});if(['villagers','finnew-companions'].includes(key))return window.loadVillagePeopleAsset(key,loader);return new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(new Error(key+' loading timed out')),45000);const success=value=>{clearTimeout(timeout);resolve(value);};const script=document.createElement('script');script.src='assets/level3-'+key+'-data.js'+(key==='villagers'?'?v=crowd79-lod-3':'');script.onerror=reject;script.onload=()=>{try{const raw=atob(window.level3ModelData[key]),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);delete window.level3ModelData[key];loader.parse(bytes.buffer,'',g=>success(g.scene),reject);}catch(e){reject(e);}script.remove();};document.head.appendChild(script);});}
   const status=document.createElement('div');status.style.cssText='position:absolute;top:55px;left:20px;color:white;background:#102235dd;padding:10px;z-index:5;display:none';status.textContent='Loading hillside village…';document.querySelector('.arena-wrap').appendChild(status);
   function gradeVillage(material){
     material.roughness=.78;material.metalness=0;
@@ -57,14 +57,15 @@
     if(!companions&&crowdState.companions!=='loading'){crowdState.companions='loading';load('finnew-companions').then(model=>{companions=window.createVillagePeople(T,model,root,window.modelVillageHeight,bridgeY,bridgeZ,{count:4,companions:true,originalColors:true});crowdState.companions='ready';}).catch(error=>{crowdState.companions='error';console.warn('Village companions loading:',error);});}
   }
   crowdRetry.onclick=loadVillageActors;
-  let ready=false,failed=false;
-  let started=false;function startLoading(){if(started)return;started=true;
-  load('village').then(model=>{model.scale.setScalar(120);root.add(model);model.traverse(o=>{if(o.isMesh){o.receiveShadow=true;o.castShadow=true;o.castShadow=false;surfaces.push(o);for(const m of (Array.isArray(o.material)?o.material:[o.material]))gradeVillage(m);}});ready=true;loadClueProps();loadVillageActors();status.textContent='Village ready · loading water…';return new T.TextureLoader().loadAsync('assets/level3-water-basecolor.jpg?v=original-1');}).then(waterMap=>{
+  let ready=false,failed=false,previewGround=null;window.heroVillageModelStatus='idle';
+  const villageRetry=document.createElement('button');villageRetry.textContent='RETRY ORIGINAL VILLAGE';villageRetry.hidden=true;villageRetry.style.cssText='position:absolute;top:96px;left:20px;z-index:18;padding:10px;background:#102235;color:#fff2d6;border:1px solid #e7bf73';document.querySelector('.arena-wrap').appendChild(villageRetry);villageRetry.onclick=()=>{if(window.heroVillageModelStatus==='loading')return;started=false;ready=false;failed=false;startLoading();};
+  let started=false;function startLoading(){if(started)return;started=true;window.heroVillageModelStatus='loading';villageRetry.hidden=true;failed=false;
+  load('village').then(model=>{if(previewGround){root.remove(previewGround);previewGround.geometry.dispose();previewGround.material.dispose();previewGround=null;}window.heroVillageModelStatus='ready';failed=false;model.scale.setScalar(120);root.add(model);model.traverse(o=>{if(o.isMesh){o.receiveShadow=true;o.castShadow=true;o.castShadow=false;surfaces.push(o);for(const m of (Array.isArray(o.material)?o.material:[o.material]))gradeVillage(m);}});ready=true;loadClueProps();loadVillageActors();status.textContent='Village ready · loading water…';return new T.TextureLoader().loadAsync('assets/level3-water-basecolor.jpg?v=original-1');}).then(waterMap=>{
     // Retain the supplied water's texture on a flat, horizon-sized surface.
     if(waterMap){waterMap.flipY=false;waterMap.colorSpace=T.SRGBColorSpace;waterMap.wrapS=waterMap.wrapT=T.RepeatWrapping;waterMap.needsUpdate=true;riverMaterial.uniforms.waterMap.value=waterMap;riverMaterial.uniforms.hasWaterMap.value=1;}
     water=riverSurface;
     ready=true;status.style.display='none';
-  }).catch(e=>{const originalVillageLoaded=ready;failed=!originalVillageLoaded;if(!originalVillageLoaded){fallback();loadVillageActors();}ready=true;status.textContent=originalVillageLoaded?'Village loaded · optional water is unavailable':'Village preview · original 3D terrain is unavailable';console.error(e);});}
+  }).catch(e=>{const originalVillageLoaded=ready;failed=!originalVillageLoaded;if(!originalVillageLoaded){window.heroVillageModelStatus='error';if(!previewGround)fallback();loadVillageActors();}ready=true;status.textContent=originalVillageLoaded?'Village loaded · optional water is unavailable':'Original village could not load · retry without restarting your mission';console.error(e);});}
   // Flat water extends beyond the fog horizon in every direction.
   // Animate world-space flow rather than moving tiles, so the river never resets visibly.
   const riverGeometry=new T.PlaneGeometry(4000,4000,1,1);
@@ -195,7 +196,7 @@
     geometry.setIndex(indices);
     geometry.computeVertexNormals();
     const ground=new T.MeshStandardMaterial({color:0x877965,roughness:1,side:T.DoubleSide});
-    root.add(new T.Mesh(geometry,ground));
+    previewGround=new T.Mesh(geometry,ground);root.add(previewGround);
   }
   window.modelVillageCamera=(camera,focus)=>{
     // Keep the lens outside the actor; scenery must not push it into his body.
@@ -229,7 +230,7 @@
     camera.position.copy(focus).add(delta);
   };
   window.modelVillageReady=()=>ready;
-  return {update(active,p,t){root.visible=active;crowdInfo.hidden=!active||(crowdState.villagers==='ready'&&crowdState.companions==='ready');const crowdCaption=crowdState.villagers==='error'?'Human villagers could not load.':crowdState.villagers==='ready'?(crowdState.companions==='error'?'79 human villagers ready · companions could not load.':'79 human villagers ready · preparing companions…'):'Preparing the original human villagers…';if(crowdText.textContent!==crowdCaption)crowdText.textContent=crowdCaption;crowdRetry.hidden=!(crowdState.villagers==='error'||crowdState.companions==='error');status.style.display=active&&(!ready||failed)?'block':'none';if(!active)return;startLoading();scene.background=new T.Color(0xc4d9e9);scene.fog.color.setHex(0xb5cbdc);scene.fog.near=38;scene.fog.far=190;skyEffects.update(t,p);if(villagers){try{villagers.update(t,{x:p.x,y:window.modelVillageHeight(p.x,p.z)??bridgeY,z:p.z});}catch(error){console.error('Villager animation paused:',error);villagers=null;}}riverSurface.position.set(p.x,0,p.z);
+  return {update(active,p,t){root.visible=active;villageRetry.hidden=!active||!failed;crowdInfo.hidden=!active||(crowdState.villagers==='ready'&&crowdState.companions==='ready');const crowdCaption=crowdState.villagers==='error'?'Human villagers could not load.':crowdState.villagers==='ready'?(crowdState.companions==='error'?'79 human villagers ready · companions could not load.':'79 human villagers ready · preparing companions…'):'Preparing the original human villagers…';if(crowdText.textContent!==crowdCaption)crowdText.textContent=crowdCaption;crowdRetry.hidden=!(crowdState.villagers==='error'||crowdState.companions==='error');status.style.display=active&&(!ready||failed)?'block':'none';if(!active)return;startLoading();scene.background=new T.Color(0xc4d9e9);scene.fog.color.setHex(0xb5cbdc);scene.fog.near=38;scene.fog.far=190;skyEffects.update(t,p);if(villagers){try{villagers.update(t,{x:p.x,y:window.modelVillageHeight(p.x,p.z)??bridgeY,z:p.z});}catch(error){console.error('Villager animation paused:',error);villagers=null;}}riverSurface.position.set(p.x,0,p.z);
     const heroGround=window.modelVillageHeight(p.x,p.z)??bridgeY;
     heroFill.position.set(p.x+4,heroGround+7,p.z+6);heroFill.target.position.set(p.x,heroGround+1.3,p.z);
     windowLights.forEach(w=>{w.material.emissiveIntensity=2.4*(1+.025*Math.sin(t*2+w.phase));});
@@ -237,6 +238,7 @@
     if(companions){try{companions.update(t,{x:p.x,y:window.modelVillageHeight(p.x,p.z)??bridgeY,z:p.z});}catch(error){console.error('Companion animation paused',error);companions=null;}}flowTime.value=t;clueProps.forEach((prop,i)=>{prop.visible=!window.heroArena3DState?.()?.state?.homeStudy?.found?.[i];});cluePlaceholders.forEach((photo,i)=>{photo.visible=!clueProps[i]&&!window.heroArena3DState?.()?.state?.homeStudy?.found?.[i];});markers.forEach((m,i)=>{m.visible=!window.heroArena3DState?.()?.state?.homeStudy?.found?.[i];m.rotation.z=t*.2;});}};
  };
 })();
+
 
 
 
