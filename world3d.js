@@ -1427,6 +1427,7 @@
     backdropCanvas.width = Math.round(rect.width * ratio); backdropCanvas.height = Math.round(rect.height * ratio); details.width=backdropCanvas.width; details.height=backdropCanvas.height;
   }
   new ResizeObserver(resize).observe(wrap); window.addEventListener('resize', resize); resize();
+  const naturalWalk=window.createNaturalWalk?.(THREE);
   const footContact = window.createFootContact?.(THREE); const groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0), groundRay=new THREE.Raycaster();
   const travelWorld=window.createTravelWorld?.(THREE,scene,renderer);
   const wildclawPresentation=window.createWildclawPresentation?.(THREE,scene);
@@ -1781,6 +1782,7 @@
 
     window.updateVillageClueCinematic?.(THREE,state,camera,rigs);
     for(const actor of rigs.values())window.stabilizeCharacterPose?.(actor);
+    if(naturalWalk)for(const actor of rigs.values()){const p=actor.userData.source;if(!p||p.seated||p.buried||p.flying||p.climbing||p.jump>0||p.villageAirborne||p.dodge>0||p.finStunt||p.ecalSkill||p.wildSlam||p.actionTime>0)continue;let g=actor.userData.glbRig;if(actor.userData.helmetedModel?.visible){g=actor.userData.helmetedRig||naturalWalk.rigStaticLegs(actor.userData.helmetedModel,2.32);}if(g)naturalWalk.update(actor,t,{rig:g,smoothTurn:false,height:2.32*actor.scale.y,heightAt:groundHeight});}
     renderFinalCombo(state,camera,rigs,dt);
     const playerKind=({guardian:'golden',wildclaw:'wildclaw',ecal:'ecal',finnew:'finnew',lizard:'lizard'})[local.hero];
     const heroName=({guardian:'Red Dawn',wildclaw:'Wildclaw',ecal:'Ecal',finnew:'Fin New',lizard:'Lizard Warrior'})[local.hero]||'Your hero';

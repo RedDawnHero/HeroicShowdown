@@ -49,10 +49,10 @@
     `);
    };m.customProgramCacheKey=()=> 'village-outfit-v1';return m;}
   if(!sources.length)return {update(){}};
-  const geometryCache=new Map();
+  const geometryCache=new Map(),naturalGeometryCache=new Map(),naturalWalk=window.createNaturalWalk?.(T);
   Array.from({length:options.count??79},(_,index)=>options.companions?(routes.length>2?routes[2+(index*7+3)%(routes.length-2)]:routes[index%2]):index<12?routes[index%2]:routes.length>2?routes[2+(index-12)%(routes.length-2)]:routes[index%2]).forEach((route,index)=>{
    const source=sources[index%sources.length];
-   const geometry=source.geometry,positions=geometry.attributes.position,bones=[];
+   let geometry=source.geometry;const positions=geometry.attributes.position,bones=[];
    const bone=(x,y,z,parentBone)=>{const b=new T.Bone();b.position.set(x,y,z);bones.push(b);if(parentBone)parentBone.add(b);return b;};
    const rootBone=bone(0,0,0),head=bone(0,1.73,0,rootBone);
    const ll=bone(-.14,.96,0,rootBone),lk=bone(0,-.46,0,ll),rl=bone(.14,.96,0,rootBone),rk=bone(0,-.46,0,rl);
@@ -82,11 +82,13 @@
    const materials=options.originalColors?source.material:Array.isArray(source.material)?source.material.map(m=>outfit(m,index)):outfit(source.material,index);
    const mesh=new T.SkinnedMesh(geometry,materials);mesh.add(rootBone);
    // Capture the full rest pose after all bones have their correct world transforms.
+   const leftAnkle=bone(0,-.41,0,lk),rightAnkle=bone(0,-.41,0,rk);let walkingGeometry=naturalGeometryCache.get(geometry);if(!walkingGeometry){walkingGeometry=geometry.clone();const oldIds=geometry.attributes.skinIndex.array,oldWeights=geometry.attributes.skinWeight.array,ids=oldIds.slice(),weights=oldWeights.slice();for(let i=0;i<positions.count;i++){const y=positions.getY(i);if(y>=.18||Math.abs(positions.getX(i))<.035)continue;const u=Math.max(0,Math.min(1,(y-.075)/.105)),blend=1-u*u*(3-2*u),k=i*4;ids[k+1]=positions.getX(i)<0?10:11;weights[k]=1-blend;weights[k+1]=blend;weights[k+2]=weights[k+3]=0;}walkingGeometry.setAttribute('skinIndex',new T.Uint16BufferAttribute(ids,4));walkingGeometry.setAttribute('skinWeight',new T.Float32BufferAttribute(weights,4));naturalGeometryCache.set(geometry,walkingGeometry);}mesh.geometry=walkingGeometry;
    mesh.updateMatrixWorld(true);const skeleton=new T.Skeleton(bones);skeleton.calculateInverses();mesh.bind(skeleton,mesh.matrixWorld.clone());mesh.computeBoundingSphere();mesh.boundingSphere.radius+=.6;mesh.frustumCulled=true;
    const actor=new T.Group();actor.name=(options.companions?'Fin New companion ':'Village pedestrian ')+(index+1);actor.add(mesh);parent.add(actor);
    // Match the same 0.68 village scale used by Red Dawn's player rig.
    const redDawnHeight=2.32*1.06*(window.heroCharacterSize?.({hero:'guardian'})??1.6896)*.68;
    actor.scale.setScalar(redDawnHeight/2.05);
+   actor.userData.glbRig={pelvis:rootBone,thighs:[ll,rl],knees:[lk,rk],shins:[leftAnkle,rightAnkle],feet:[],arms:[la,ra],forearms:[le,re],ankleRatio:.09/2.05};
    const direction=index%2?-1:1;
    const progress=((index*.61803398875)%1)*(route.length-1);
    const low=Math.floor(progress),high=Math.min(route.length-1,low+1);
@@ -124,8 +126,10 @@
     let low=Infinity;const foot=new T.Vector3();
     for(const index of p.feet){foot.fromBufferAttribute(p.mesh.geometry.attributes.position,index);p.mesh.applyBoneTransform(index,foot);low=Math.min(low,foot.y);}
     if(Number.isFinite(low))p.mesh.position.y=-low;
+    naturalWalk?.update(p.actor,t,{height:2.05*p.actor.scale.y,heightAt:()=>p.actor.position.y,smoothTurn:false});
 
    }
   }};
  };
 })();
+
