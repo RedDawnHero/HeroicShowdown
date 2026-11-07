@@ -1429,6 +1429,7 @@
   const wildclawPresentation=window.createWildclawPresentation?.(THREE,scene);
   const ruinedCanyon=window.createRuinedCityCanyon?.(THREE,scene);
   const scenicBackground=window.createScenicBackground?.(THREE,scene);
+  const coastalTruth=window.createCoastalTruth?.(THREE,wrap);
   const cosmicArrival=window.createCosmicArrival?.(THREE,wrap,async()=>{const url='assets/helmeted-red-dawn.glb';if(!helmetModelLoads.has(url))helmetModelLoads.set(url,loadPlayerModel(url,'helmeted'));const model=await helmetModelLoads.get(url);if(!model){helmetModelLoads.delete(url);throw Error('Detailed arrival armor could not load');}return model;});
   const villageTransport=window.createVillageDeparture?.(THREE,scene);
   const darkPresentation=window.createDarkBossPresentation?.(THREE,scene);
@@ -1518,6 +1519,7 @@
       finalRealm?.hide();window.hideFrostIntro?.();darkPresentation?.hide();ashenPortal?.hide();window.heroTravelProjection=null;window.heroTravelUnproject=null;if(travelWorld)travelWorld.hide();wrap.classList.remove('playing3d'); canvas.style.visibility = 'hidden'; backdropCanvas.style.visibility = 'hidden'; details.style.visibility='hidden'; return;
     }
     details.style.visibility='visible'; canvas.style.visibility = 'visible'; wrap.classList.add('playing3d');
+    if(coastalTruth?.render(state,renderer,camera.aspect,data.playerId==='host')){details.style.visibility='hidden';backdropCanvas.style.visibility='hidden';heroLoadingLabel.hidden=true;return;}
     if(cosmicArrival?.render(state,renderer,camera.aspect,data.playerId==='host')){details.style.visibility='hidden';backdropCanvas.style.visibility='hidden';heroLoadingLabel.hidden=true;return;}
     const localKey = data.playerId === 'host' ? 'host' : data.playerId;
     const local = state.players[localKey] || Object.values(state.players)[0];
@@ -1810,6 +1812,7 @@
   }
   window.dispatchEvent(new Event('heroic-3d-ready'));
 })();
+
 
 
 

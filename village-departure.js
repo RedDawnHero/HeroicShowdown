@@ -3,7 +3,7 @@
   const clamp=x=>Math.max(0,Math.min(1,x)),ease=x=>{x=clamp(x);return x*x*(3-2*x);};
   window.VillageDeparture={
     canStart:s=>s?.phase==='game'&&s.round===3&&!s.clueScene&&!s.radioScene&&s.homeStudy?.cinematicSeen&&s.homeStudy.found.length===4&&s.homeStudy.found.every(Boolean),
-    begin(s){if(s.villageDeparture||!this.canStart(s))return false;const landing={x:500+3/.055,y:300-4/.055};s.villageDeparture={id:Date.now(),stage:'landing',age:0,x:landing.x,y:landing.y,starts:Object.fromEntries(Object.entries(s.players).map(([id,p])=>[id,{x:p.x,y:p.y}]))};for(const p of Object.values(s.players)){p.heldPhoto=null;p.inspectingPhoto=false;p.seated=null;p.fx=p.fy=p.moveSpeed=0;}return true;},
+    begin(s){if(s.villageDeparture||!this.canStart(s))return false;const landing={x:500+3/.055,y:300-4/.055};s.villageDeparture={id:Date.now(),stage:s.homeStudy.transportLanded?'waiting':'landing',age:0,x:landing.x,y:landing.y,starts:Object.fromEntries(Object.entries(s.players).map(([id,p])=>[id,{x:p.x,y:p.y}]))};for(const p of Object.values(s.players)){p.heldPhoto=null;p.inspectingPhoto=false;p.seated=null;p.fx=p.fy=p.moveSpeed=0;}return true;},
     board(s){const c=s.villageDeparture;if(c?.stage!=='waiting')return false;c.stage='boarding';c.age=0;return true;},
     step(s,dt,ready){const c=s.villageDeparture;if(!c)return false;for(const p of Object.values(s.players)){p.run=false;p.jump=0;p.fx=p.fy=p.moveSpeed=0;}if(!ready)return false;c.age+=Math.min(.05,Math.max(0,dt));if(c.stage==='landing'&&c.age>=6){c.stage='waiting';c.age=0;}if(c.stage==='boarding'){const u=ease(c.age/5);for(const [id,p]of Object.entries(s.players)){const a=c.starts[id]||c.starts.host,slot=Object.keys(s.players).indexOf(id);p.x=a.x+(c.x+45-a.x)*u;p.y=a.y+(c.y+18+slot*2-a.y)*u;p.fx=c.age<5?.5:0;p.fy=c.age<5?-.5:0;p.moveSpeed=c.age<5?70:0;}if(c.age>=6){c.stage='takeoff';c.age=0;}}if(c.stage==='takeoff'&&c.age>=5)return true;return false;}
   };
@@ -43,7 +43,7 @@
     const flames=[];for(const side of [-1,1]){const flame=mesh(new T.ConeGeometry(.65,5,24,1,true),new T.MeshBasicMaterial({color:0x5acfff,transparent:true,opacity:.65,depthWrite:false,side:T.DoubleSide}),[side*2.6,2.1,7.2]);flame.rotation.x=Math.PI/2;flames.push(flame);}
     const label=document.createElement('div');label.id='villageTransportCaption';label.hidden=true;label.style.cssText='position:absolute;left:15%;right:15%;bottom:10%;padding:16px;background:#07131bd9;color:#f3dfb7;text-align:center;font:700 15px sans-serif;z-index:45;pointer-events:none';document.querySelector('.arena-wrap').appendChild(label);
     let sceneId=null;
-    return {root,update(s,camera,rigs,localKey,t){const c=s.villageDeparture,arrival=s.canyonArrival;const active=s.phase==='game'&&!!c&&s.round===3;root.visible=active;label.hidden=!active&&!arrival;if(!active){if(arrival&&s.round===4){const hero=rigs.get(localKey);if(hero)hero.visible=false;label.textContent='SHATTERED FUTURE · THE STARSHIP CANYON';const u=ease(arrival.age/5),p=s.players[localKey]||s.players.host,x=(p.x-500)*.055,z=(p.y-300)*.055;camera.position.set(x+.6,2.1,z+6-u*5);camera.lookAt(x,2,z-25);camera.fov=60;camera.updateProjectionMatrix();}return;}
+    return {root,parts:{ramp,door,flames,landingDust},update(s,camera,rigs,localKey,t){const c=s.villageDeparture,arrival=s.canyonArrival;const active=s.phase==='game'&&!!c&&s.round===3;root.visible=active;label.hidden=!active&&!arrival;if(!active){if(arrival&&s.round===4){const hero=rigs.get(localKey);if(hero)hero.visible=false;label.textContent='SHATTERED FUTURE · THE STARSHIP CANYON';const u=ease(arrival.age/5),p=s.players[localKey]||s.players.host,x=(p.x-500)*.055,z=(p.y-300)*.055;camera.position.set(x+.6,2.1,z+6-u*5);camera.lookAt(x,2,z-25);camera.fov=60;camera.updateProjectionMatrix();}return;}
       if(sceneId!==c.id)sceneId=c.id;
       window.villageDepartureReady=c.id;const x=(c.x-500)*.055,z=(c.y-300)*.055,floor=window.modelVillageHeight?.(x,z)??0;const a=c.age;const lift=c.stage==='landing'?24*(1-ease(a/6)):c.stage==='takeoff'?ease(a/5)*35:0;root.position.set(x,floor+lift,z);const landingAge=c.stage==='landing'?a-5.7:c.stage==='waiting'?a+.3:100,spread=Math.max(0,Math.min(1,landingAge/1.2));landingDust.visible=landingAge>=0&&landingAge<1.2;landingDust.scale.setScalar(1+spread*8);landingDust.material.opacity=(1-spread)*.34;root.rotation.y=-.22;ramp.visible=['waiting','boarding'].includes(c.stage);door.visible=ramp.visible;flames.forEach((f,i)=>{f.visible=['landing','takeoff'].includes(c.stage);f.scale.y=.8+Math.sin(t*25+i)*.14;});
       const origin=s.players[localKey]||s.players.host;const h=rigs.get(localKey);if(h){h.visible=c.stage!=='takeoff'&&!(c.stage==='boarding'&&a>4.7);}
@@ -54,4 +54,5 @@
     };
   };
 })();
+
 

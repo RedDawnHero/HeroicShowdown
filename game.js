@@ -930,7 +930,7 @@
   modelNotice.style.cssText='position:fixed;left:20px;bottom:20px;z-index:30000;max-width:440px;padding:16px;background:#14202ff5;color:#fff;border:1px solid #efbd63;border-radius:8px;font:15px sans-serif';
   document.body.appendChild(modelNotice);
   window.heroModelLoadError=(message)=>{modelNotice.hidden=false;modelNotice.textContent=message+' Your saved models have not been removed. Reload the game to retry.';};
-  const load3DWorld = () => { const world = document.createElement('script'); world.src = 'world3d.js?v=wildclaw-impact-1';world.onerror=()=>window.heroModelLoadError('The 3D game script could not load.'); document.body.appendChild(world); };
+  const load3DWorld = () => { const world = document.createElement('script'); world.src = 'world3d.js?v=coastal-truth-1';world.onerror=()=>window.heroModelLoadError('The 3D game script could not load.'); document.body.appendChild(world); };
   window.addEventListener('error',event=>{if(/world3d|model-village|village-radio/.test(event.filename||''))window.heroModelLoadError('3D startup error: '+event.message);});
   const prepare3DWorld = (attempt=0) => {
     Promise.all([import('three'), import('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js')]).then(([THREE, loaders]) => {
@@ -1171,9 +1171,9 @@
   const beforeRunBlend=simulate;simulate=function(dt){if(state?.players)for(const p of Object.values(state.players))p.runBlend=(p.runBlend||0)+((p.run?1:0)-(p.runBlend||0))*(1-Math.exp(-dt*5));return beforeRunBlend(dt);};
   const beforeClueAct=act;
   act=function(p,kind){
-    if(state?.clueScene){if(kind==='skipClueScene'){window.VillageClueScene.finish(state);broadcast();}return;}
+    if(state?.clueScene){if(kind==='truthModelReady'){state.clueScene.ready[p.id]=true;broadcast();return;}if(kind==='skipClueScene'&&p?.id==='host'){window.VillageClueScene.finish(state);broadcast();}return;}
     const result=beforeClueAct(p,kind);
-    if(state?.round===3&&window.VillageClueScene.photosFound(state.homeStudy)&&!state.homeStudy.cinematicSeen){window.VillageClueScene.begin(state,p);arenaTarget=null;broadcast();}
+    if(state?.round===3&&window.VillageClueScene.readyForTruth(state.homeStudy)&&!state.homeStudy.cinematicSeen){window.VillageClueScene.begin(state,p);arenaTarget=null;broadcast();}
     return result;
   };
   const beforeClueMove=move;move=function(x,y,run){if(state?.clueScene)return;return beforeClueMove(x,y,run);};
@@ -1184,6 +1184,7 @@
     }
     return beforeClueSim(dt);
   };
+  window.addEventListener('truth-cast-ready',()=>action('truthModelReady'));
   window.addEventListener('skip-village-clue-scene',()=>action('skipClueScene'));
 
   // The one-level finale is triggered by the player and remains host-authoritative.
@@ -1369,8 +1370,13 @@
     if(state?.phase==='game'&&round===state.round&&!state.intro&&!state.finale&&!state.ashenTransition&&!state.cosmicArrival){if(state.heroModelsReady&&(state.round!==2||window.heroIceLandscapeStatus==='ready'))window.WildclawMoves.step(state,dt,wildclawImpact);}else for(const[p]of held){p.wildSlam=null;p.jump=0;}
   };
 
+
+  const truthStyle=document.createElement('style');truthStyle.textContent='.truth-cinematic-playing .game-top,.truth-cinematic-playing .game-bottom,.truth-cinematic-playing #keyboardHelp,.truth-cinematic-playing #gameTip,.truth-cinematic-playing .arena-wrap>:not(canvas):not([data-coastal-truth]){display:none!important}';document.head.appendChild(truthStyle);
+  const beforeCoastalTruthHUD=renderHUD;renderHUD=function(){beforeCoastalTruthHUD();const playing=!!state?.clueScene;$('#game').classList.toggle('truth-cinematic-playing',playing);if(playing){homePanel.hidden=true;photoViewer.hidden=true;}else if(state?.round===3&&window.VillageClueScene.photosFound(state.homeStudy)&&!window.VillageClueScene.readyForTruth(state.homeStudy))homeText.textContent='Three photographs recovered. Find the revenge note to uncover the truth.';};
+
   prepare3DWorld();
 })();
+
 
 
 
