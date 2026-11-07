@@ -930,7 +930,7 @@
   modelNotice.style.cssText='position:fixed;left:20px;bottom:20px;z-index:30000;max-width:440px;padding:16px;background:#14202ff5;color:#fff;border:1px solid #efbd63;border-radius:8px;font:15px sans-serif';
   document.body.appendChild(modelNotice);
   window.heroModelLoadError=(message)=>{modelNotice.hidden=false;modelNotice.textContent=message+' Your saved models have not been removed. Reload the game to retry.';};
-  const load3DWorld = () => { const world = document.createElement('script'); world.src = 'world3d.js?v=coastal-truth-1';world.onerror=()=>window.heroModelLoadError('The 3D game script could not load.'); document.body.appendChild(world); };
+  const load3DWorld = () => { const world = document.createElement('script'); world.src = 'world3d.js?v=peaceful-village-2';world.onerror=()=>window.heroModelLoadError('The 3D game script could not load.'); document.body.appendChild(world); };
   window.addEventListener('error',event=>{if(/world3d|model-village|village-radio/.test(event.filename||''))window.heroModelLoadError('3D startup error: '+event.message);});
   const prepare3DWorld = (attempt=0) => {
     Promise.all([import('three'), import('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js')]).then(([THREE, loaders]) => {
@@ -1013,7 +1013,7 @@
       }else if(!p.villageAirborne)p.villageHeight=floor;
       p.jump=p.villageAirborne?.4:0;
       p.moveSpeed=Math.hypot(p.x-ox,p.y-oy)/Math.max(.001,dt);if(p.moveSpeed>1)p.moveYaw=Math.atan2(p.x-ox,p.y-oy);
-      p.action='';p.actionTime=0;p.smashHit=0;p.blocking=false;
+      if(p.peacefulMove>0)window.VillageMoves.step(p,dt);else{p.action='';p.actionTime=0;p.blocking=false;}p.smashHit=0;
     }
   };
   const preHomeHUD=renderHUD;
@@ -1374,6 +1374,7 @@
   const truthStyle=document.createElement('style');truthStyle.textContent='.truth-cinematic-playing .game-top,.truth-cinematic-playing .game-bottom,.truth-cinematic-playing #keyboardHelp,.truth-cinematic-playing #gameTip,.truth-cinematic-playing .arena-wrap>:not(canvas):not([data-coastal-truth]){display:none!important}';document.head.appendChild(truthStyle);
   const beforeCoastalTruthHUD=renderHUD;renderHUD=function(){beforeCoastalTruthHUD();const playing=!!state?.clueScene;$('#game').classList.toggle('truth-cinematic-playing',playing);if(playing){homePanel.hidden=true;photoViewer.hidden=true;}else if(state?.round===3&&window.VillageClueScene.photosFound(state.homeStudy)&&!window.VillageClueScene.readyForTruth(state.homeStudy))homeText.textContent='Three photographs recovered. Find the revenge note to uncover the truth.';};
 
+  const beforePeacefulVillageAct=act;act=function(p,kind){if(window.VillageMoves?.handle(state,p,kind,performance.now())){broadcast();return;}return beforePeacefulVillageAct(p,kind);};
   prepare3DWorld();
 $('#createRoom').disabled=false;$('#joinRoom').disabled=false;const startupStatus=$('#menuStartupStatus');if(startupStatus){startupStatus.textContent='Game controls ready';startupStatus.hidden=true;}
   })();

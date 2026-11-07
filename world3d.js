@@ -1431,6 +1431,7 @@
   const scenicBackground=window.createScenicBackground?.(THREE,scene);
   const coastalTruth=window.createCoastalTruth?.(THREE,wrap);
   const cosmicArrival=window.createCosmicArrival?.(THREE,wrap,async()=>{const url='assets/helmeted-red-dawn.glb';if(!helmetModelLoads.has(url))helmetModelLoads.set(url,loadPlayerModel(url,'helmeted'));const model=await helmetModelLoads.get(url);if(!model){helmetModelLoads.delete(url);throw Error('Detailed arrival armor could not load');}return model;});
+  const peacefulVillageEffects=window.createVillageMoveEffects?.(THREE);
   const villageTransport=window.createVillageDeparture?.(THREE,scene);
   const darkPresentation=window.createDarkBossPresentation?.(THREE,scene);
   const ashenPortal=window.createAshenPortal?.(THREE,scene);
@@ -1782,6 +1783,7 @@
     heroLoadingLabel.hidden=!!localRig?.userData.glbModel||!!state.finalCombo;
     heroLoadingLabel.textContent=characterModelStatus.get(playerKind)==='error'?heroName+' model unavailable. Reload to retry.':'Preparing '+heroName+'…';
     ruinedCanyon?.updateCamera(state,local,camera,localRig,dt,cameraMode,true);
+    peacefulVillageEffects?.update(state,rigs);
     villageTransport?.update(state,camera,rigs,localKey,t);
     wildclawPresentation?.update(state,rigs,camera,localKey,t,groundHeight,cameraMode);
     scenicBackground?.update(state,camera);
