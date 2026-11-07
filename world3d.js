@@ -28,6 +28,9 @@
     backdropCanvas.remove(); details.remove();
     return;
   }
+  let graphicsLost=false;const graphicsNotice=document.createElement('div');graphicsNotice.hidden=true;graphicsNotice.setAttribute('role','status');graphicsNotice.style.cssText='position:absolute;inset:0;background:#101b2f;color:#fff2cf;z-index:95;display:grid;place-items:center;text-align:center;padding:24px;font:600 18px sans-serif';graphicsNotice.textContent='Restoring the 3D view… Your mission is paused.';wrap.appendChild(graphicsNotice);const graphicsStyle=document.createElement('style');graphicsStyle.textContent='#arena3d{background:#101b2f}[data-graphics-recovery][hidden]{display:none!important}';graphicsNotice.dataset.graphicsRecovery='';document.head.appendChild(graphicsStyle);
+  canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();graphicsLost=true;window.heroGraphicsPaused=true;window.dispatchEvent(new CustomEvent('hero-graphics-pause',{detail:{paused:true}}));graphicsNotice.hidden=false;});
+  canvas.addEventListener('webglcontextrestored',()=>{graphicsLost=false;window.heroGraphicsPaused=false;window.dispatchEvent(new CustomEvent('hero-graphics-pause',{detail:{paused:false}}));graphicsNotice.hidden=true;renderer.setPixelRatio(1);resize();});
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -1430,7 +1433,7 @@
   const ruinedCanyon=window.createRuinedCityCanyon?.(THREE,scene);
   const scenicBackground=window.createScenicBackground?.(THREE,scene);
   const coastalTruth=window.createCoastalTruth?.(THREE,wrap);
-  const cosmicArrival=window.createCosmicArrival?.(THREE,wrap,async()=>{const url='assets/helmeted-red-dawn.glb';if(!helmetModelLoads.has(url))helmetModelLoads.set(url,loadPlayerModel(url,'helmeted'));const model=await helmetModelLoads.get(url);if(!model){helmetModelLoads.delete(url);throw Error('Detailed arrival armor could not load');}return model;});
+  const cosmicArrival=window.createCosmicArrival?.(THREE,wrap,async()=>{const url='assets/helmeted-red-dawn.glb';if(!helmetModelLoads.has(url))helmetModelLoads.set(url,loadPlayerModel(url,'helmeted'));const model=await helmetModelLoads.get(url);if(!model){helmetModelLoads.delete(url);throw Error('Detailed arrival armor could not load');}const others=await Promise.all(['finnew','ecal','lizard','wildclaw'].map(hero=>window.preloadPlayerHero(hero)));if(others.some(model=>!model))throw Error('Fin New and Ecal must finish loading');return [model,...others];},{playerId:()=>window.heroArena3DState?.()?.playerId||'host'});
   const peacefulVillageEffects=window.createVillageMoveEffects?.(THREE);
   const villageTransport=window.createVillageDeparture?.(THREE,scene);
   const darkPresentation=window.createDarkBossPresentation?.(THREE,scene);
@@ -1508,6 +1511,7 @@
 
   function frame(now) {
     requestAnimationFrame(frame);
+    if(graphicsLost){lastFrame=now;return;}
     const dt = Math.min(.045, (now - lastFrame) / 1000); lastFrame = now;
     const data = window.heroArena3DState();
     const state = data && data.state;
@@ -1804,6 +1808,7 @@
     }
     await Promise.allSettled([...characterModelLoads.values(),...helmetModelLoads.values()]);
   };
+  window.retryOriginalCinematicActor=actor=>{const kind=actor?.userData.kind;if(!actor?.userData.glbModel&&characterModelFiles[kind])attachCharacterModel(actor,kind);if(kind==='golden'&&actor.userData.glbModel&&!actor.userData.helmetedModel)attachHelmetedRedDawn(actor);};
   requestAnimationFrame(frame);
   // Build the opening cast while the player is on the menu, using the same model cache.
   prepareOpeningActor('ecal');

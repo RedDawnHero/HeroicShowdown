@@ -930,7 +930,7 @@
   modelNotice.style.cssText='position:fixed;left:20px;bottom:20px;z-index:30000;max-width:440px;padding:16px;background:#14202ff5;color:#fff;border:1px solid #efbd63;border-radius:8px;font:15px sans-serif';
   document.body.appendChild(modelNotice);
   window.heroModelLoadError=(message)=>{modelNotice.hidden=false;modelNotice.textContent=message+' Your saved models have not been removed. Reload the game to retry.';};
-  const load3DWorld = () => { const world = document.createElement('script'); world.src = 'world3d.js?v=peaceful-village-2';world.onerror=()=>window.heroModelLoadError('The 3D game script could not load.'); document.body.appendChild(world); };
+  const load3DWorld = () => { const world = document.createElement('script'); world.src = 'world3d.js?v=cosmic-finish-20261107-1';world.onerror=()=>window.heroModelLoadError('The 3D game script could not load.'); document.body.appendChild(world); };
   window.addEventListener('error',event=>{if(/world3d|model-village|village-radio/.test(event.filename||''))window.heroModelLoadError('3D startup error: '+event.message);});
   const prepare3DWorld = (attempt=0) => {
     Promise.all([import('three'), import('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js')]).then(([THREE, loaders]) => {
@@ -1312,14 +1312,14 @@
     if(state?.villageDeparture)return;
     if(kind==="cosmicModelReady"){if(state?.cosmicArrival&&p?.id)state.cosmicArrival.ready[p.id]=true;broadcast();return;}
     if(kind==="continueCosmicArrival"){if(isHost&&p?.id==="host")window.CosmicArrival.finish(state);broadcast();return;}
-    if(state?.cosmicArrival)return;
+    if(state?.cosmicArrival){window.CosmicArrival.act(state,p,kind);broadcast();return;}
     return campaignAct(p,kind);
   };
   const campaignHUD=renderHUD;renderHUD=function(){campaignHUD();const unlocked=state?.phase==='game'&&state.round===3&&state.homeStudy?.cinematicSeen&&!state.clueScene&&window.VillageClueScene.photosFound(state.homeStudy);const waiting=state?.villageDeparture?.stage==='waiting';continueCampaignButton.hidden=!(waiting||(unlocked&&!state.villageDeparture&&window.VillageDeparture.canStart(state)));continueCampaignButton.disabled=!isHost;continueCampaignButton.textContent=isHost?(waiting?'BOARD THE SHIP →':'CALL THE TRANSPORT →'):'WAITING FOR HOST TO BOARD';};
   window.addEventListener('cosmic-arrival-ready',()=>action('cosmicModelReady'));
   window.addEventListener('continue-cosmic-arrival',()=>action('continueCosmicArrival'));
   window.addEventListener('cosmic-arrival-sound',event=>{if(musicMuted)return;unlockAudio();if(!audioCtx)return;const cue=event.detail.cue;try{if(cue==='wind'){const buffer=audioCtx.createBuffer(1,audioCtx.sampleRate*3,audioCtx.sampleRate),data=buffer.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*.2;const source=audioCtx.createBufferSource(),filter=audioCtx.createBiquadFilter(),gain=audioCtx.createGain();source.buffer=buffer;filter.type='lowpass';filter.frequency.value=600;gain.gain.setValueAtTime(.1,audioCtx.currentTime);gain.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+3);source.connect(filter).connect(gain).connect(audioCtx.destination);source.start();source.stop(audioCtx.currentTime+3);}else{const oscillator=audioCtx.createOscillator(),gain=audioCtx.createGain();oscillator.frequency.setValueAtTime(cue==='landing'?80:55,audioCtx.currentTime);oscillator.frequency.exponentialRampToValueAtTime(27,audioCtx.currentTime+1.1);gain.gain.setValueAtTime(.15,audioCtx.currentTime);gain.gain.exponentialRampToValueAtTime(.001,audioCtx.currentTime+1.3);oscillator.connect(gain).connect(audioCtx.destination);oscillator.start();oscillator.stop(audioCtx.currentTime+1.4);}}catch{}});
-  const campaignMove=move;move=function(x,y,run){if(state?.villageDeparture||state?.canyonArrival||state?.cosmicArrival)return;return campaignMove(x,y,run);};
+  const campaignMove=move;move=function(x,y,run){if(state?.villageDeparture||state?.canyonArrival||state?.cosmicArrival?.phase==='cinematic')return;return campaignMove(x,y,run);};
   const campaignSim=simulate;simulate=function(dt){
     if(state?.phase==='game'&&state.round===3){if(!state.villageDeparture&&window.VillageDeparture.canStart(state))window.VillageDeparture.begin(state);if(state.villageDeparture){if(window.VillageDeparture.step(state,dt,window.villageDepartureReady===state.villageDeparture.id&&!document.hidden)){state.villageDeparture=null;state.roundEnded=true;state.roundReason='BOSS DOWN';advanceLevel();window.CosmicArrival.begin(state);for(const p of Object.values(state.players)){p.x=500;p.y=400;p.fx=p.fy=p.walkX=p.walkY=0;}}return;}}
     if(state?.cosmicArrival){window.CosmicArrival.step(state,dt,window.cosmicArrivalReady===state.cosmicArrival.id,!document.hidden);return;}
@@ -1371,7 +1371,7 @@
   };
 
 
-  const truthStyle=document.createElement('style');truthStyle.textContent='.truth-cinematic-playing .game-top,.truth-cinematic-playing .game-bottom,.truth-cinematic-playing #keyboardHelp,.truth-cinematic-playing #gameTip,.truth-cinematic-playing .arena-wrap>:not(canvas):not([data-coastal-truth]){display:none!important}';document.head.appendChild(truthStyle);
+  const truthStyle=document.createElement('style');truthStyle.textContent='.cosmic-cinematic-playing .game-bottom,.cosmic-cinematic-playing #keyboardHelp,.cosmic-encounter-playing .game-top,.cosmic-encounter-playing #gameTip{display:none!important}.truth-cinematic-playing .game-top,.truth-cinematic-playing .game-bottom,.truth-cinematic-playing #keyboardHelp,.truth-cinematic-playing #gameTip,.truth-cinematic-playing .arena-wrap>:not(canvas):not([data-coastal-truth]){display:none!important}';document.head.appendChild(truthStyle);
   const beforeCoastalTruthHUD=renderHUD;renderHUD=function(){beforeCoastalTruthHUD();const playing=!!state?.clueScene;$('#game').classList.toggle('truth-cinematic-playing',playing);if(playing){homePanel.hidden=true;photoViewer.hidden=true;}else if(state?.round===3&&window.VillageClueScene.photosFound(state.homeStudy)&&!window.VillageClueScene.readyForTruth(state.homeStudy))homeText.textContent='Three photographs recovered. Find the revenge note to uncover the truth.';};
 
   const beforePeacefulVillageAct=act;act=function(p,kind){if(window.VillageMoves?.handle(state,p,kind,performance.now())){broadcast();return;}return beforePeacefulVillageAct(p,kind);};
@@ -1379,7 +1379,12 @@
   const beforeThreeClueHUD=renderHUD;renderHUD=function(){beforeThreeClueHUD();if(state?.round===3&&state.homeStudy){homeButton.hidden=true;photoInventory.hidden=true;photoViewer.hidden=true;homeTitle.textContent='LEVEL 3 · FIND THREE CLUES';if(!state.clueScene)homeText.textContent=state.homeStudy.cinematicSeen?'The heroes are ready. Board the transport.':state.homeStudy.found.filter(Boolean).length+'/3 clues found. Walk up to the glowing clue markers. The scene starts automatically after the third.';}};
   prepare3DWorld();
 $('#createRoom').disabled=false;$('#joinRoom').disabled=false;const startupStatus=$('#menuStartupStatus');if(startupStatus){startupStatus.textContent='Game controls ready';startupStatus.hidden=true;}
-  })();
+    // Cosmic confrontation: Red Dawn keeps his helmet on.
+  const beforeCosmicHelmetLock=act;act=function(p,kind){if(state?.cosmicArrival&&!['cosmicModelReady','continueCosmicArrival','heroModelReady','helmet'].includes(kind)){window.CosmicArrival.act(state,p,kind);broadcast();return;}if(kind==='helmet'&&(state?.cosmicArrival||state?.cosmicFight)){if(p?.hero==='guardian')p.helmet=true;say('HELMET STAYS ON DURING THE COSMIC ENCOUNTER');broadcast();return;}return beforeCosmicHelmetLock(p,kind);};
+  const beforeCosmicInput=move;move=function(x,y,run=false){if(!state?.cosmicArrival)return beforeCosmicInput(x,y,run);if(state.cosmicArrival.phase==='cinematic')return;if(isHost){state.players.host.fx=x;state.players.host.fy=y;state.players.host.run=run;}else{const connection=[...links.values()][0];if(connection?.open)connection.send({type:'input',x,y,run});}};
+  const beforeCosmicHelmetHUD=renderHUD;renderHUD=function(){beforeCosmicHelmetHUD();const locked=!!(state?.cosmicArrival||state?.cosmicFight);$('#game').classList.toggle('cosmic-cinematic-playing',state?.cosmicArrival?.phase==='cinematic');$('#game').classList.toggle('cosmic-encounter-playing',!!state?.cosmicArrival);const button=document.querySelector('[data-action="helmet"]');if(button){button.disabled=locked;button.setAttribute('aria-disabled',String(locked));}};
+  const beforeGraphicsRecoverySim=simulate;simulate=function(dt){if(window.heroGraphicsPaused){broadcast();return;}return beforeGraphicsRecoverySim(dt);};
+})();
 
 
 
