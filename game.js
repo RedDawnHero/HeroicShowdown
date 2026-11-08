@@ -930,7 +930,7 @@
   modelNotice.style.cssText='position:fixed;left:20px;bottom:20px;z-index:30000;max-width:440px;padding:16px;background:#14202ff5;color:#fff;border:1px solid #efbd63;border-radius:8px;font:15px sans-serif';
   document.body.appendChild(modelNotice);
   window.heroModelLoadError=(message)=>{modelNotice.hidden=false;modelNotice.textContent=message+' Your saved models have not been removed. Reload the game to retry.';};
-  const load3DWorld = () => { const world = document.createElement('script'); world.src = 'world3d.js?v=live-heroes-20261107-1';world.onerror=()=>window.heroModelLoadError('The 3D game script could not load.'); document.body.appendChild(world); };
+  const load3DWorld = () => { const world = document.createElement('script'); world.src = 'world3d.js?v=screen-recovery-20261108-1';world.onerror=()=>window.heroModelLoadError('The 3D game script could not load.'); document.body.appendChild(world); };
   window.addEventListener('error',event=>{if(/world3d|model-village|village-radio/.test(event.filename||''))window.heroModelLoadError('3D startup error: '+event.message);});
   const prepare3DWorld = (attempt=0) => {
     Promise.all([import('three'), import('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js')]).then(([THREE, loaders]) => {
@@ -1385,6 +1385,7 @@ $('#createRoom').disabled=false;$('#joinRoom').disabled=false;const startupStatu
   const beforeCosmicHelmetHUD=renderHUD;renderHUD=function(){beforeCosmicHelmetHUD();const locked=!!(state?.cosmicArrival||state?.cosmicFight);$('#game').classList.toggle('cosmic-cinematic-playing',state?.cosmicArrival?.phase==='cinematic');$('#game').classList.toggle('cosmic-encounter-playing',!!state?.cosmicArrival);const button=document.querySelector('[data-action="helmet"]');if(button){button.disabled=locked;button.setAttribute('aria-disabled',String(locked));}};
   const beforeGraphicsRecoverySim=simulate;simulate=function(dt){if(window.heroGraphicsPaused){broadcast();return;}return beforeGraphicsRecoverySim(dt);};
 })();
+
 
 
 

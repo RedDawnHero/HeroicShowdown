@@ -1513,6 +1513,11 @@
 
   function frame(now) {
     requestAnimationFrame(frame);
+    if(document.hidden){lastFrame=now;return;}
+    try{renderFrame(now);window.heroRenderFrameHealthy?.('main');}
+    catch(error){window.heroRenderFrameError?.('main',error);if(window.heroLastFrameError!==error.message){window.heroLastFrameError=error.message;console.error('3D frame recovery:',error);}}
+  }
+  function renderFrame(now) {
     if(graphicsLost){lastFrame=now;return;}
     const dt = Math.min(.045, (now - lastFrame) / 1000); lastFrame = now;
     const data = window.heroArena3DState();
@@ -1823,6 +1828,7 @@
   }
   window.dispatchEvent(new Event('heroic-3d-ready'));
 })();
+
 
 
 

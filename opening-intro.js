@@ -4,7 +4,7 @@
  const caption=document.createElement('div');caption.style.cssText='position:absolute;bottom:13%;left:8%;right:8%;text-align:center;color:#fff2d5;font:700 clamp(14px,2vw,24px) sans-serif;text-shadow:0 2px 12px #000;pointer-events:none;z-index:3';overlay.appendChild(caption);
  const curtain=document.createElement('div');curtain.style.cssText='position:absolute;inset:0;background:black;pointer-events:none;z-index:2';overlay.appendChild(curtain);
  const openingSong=new Audio('assets/opening-rift-collusion.m4a');openingSong.preload='auto';openingSong.volume=.65;
- let songReady=false,songPending=false,songBlocked=false;
+ let openingGraphicsLost=false,openingRenderFailed=false;let songReady=false,songPending=false,songBlocked=false;
  function stopSong(){songReady=false;openingSong.pause();openingSong.currentTime=0;}
  function playSong(){if(!active||!songReady||muted||document.hidden||songPending||songBlocked||!openingSong.paused||openingSong.ended)return;
   songPending=true;const attempt=openingSong.play();Promise.resolve(attempt).then(()=>{if(!active||!songReady||muted||document.hidden)openingSong.pause();}).catch(()=>{songBlocked=true;sound.textContent='ENABLE SOUND';}).finally(()=>{songPending=false;});
@@ -37,7 +37,7 @@
  sound.hidden=false;sound.textContent='SOUND ON';sound.onclick=()=>{if(songBlocked){songBlocked=false;muted=false;}else muted=!muted;sound.textContent=muted?'SOUND OFF':'SOUND ON';sound.setAttribute('aria-pressed',String(!muted));if(master)master.gain.value=muted?0:.22;if(muted)openingSong.pause();else playSong();};
  function boom(){if(!audio||!master)return;const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime;o.frequency.setValueAtTime(110,t);o.frequency.exponentialRampToValueAtTime(25,t+1);g.gain.setValueAtTime(.6,t);g.gain.exponentialRampToValueAtTime(.001,t+1);o.connect(g).connect(master);o.start();o.stop(t+1);}
  function setup(){const T=window.THREE;if(!T||!window.createOpeningActor)return false;if(renderer)return true;
-  renderer=new T.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.domElement.style.cssText='position:absolute;inset:0;width:100%;height:100%;z-index:0';overlay.prepend(renderer.domElement);overlay.style.backgroundImage='none';prompt.style.zIndex=4;
+  renderer=new T.WebGLRenderer({antialias:true});renderer.domElement.style.background='#101b2f';renderer.domElement.addEventListener('webglcontextlost',event=>{if(event.target.dataset.unbrokenRetired==='true')return;event.preventDefault();openingGraphicsLost=true;openingSong.pause();});renderer.domElement.addEventListener('webglcontextrestored',event=>{if(event.target.dataset.unbrokenRetired==='true')return;openingGraphicsLost=false;last=performance.now();renderer.setPixelRatio(1);});renderer.setPixelRatio(Math.min(devicePixelRatio,1.5));renderer.domElement.style.cssText='position:absolute;inset:0;width:100%;height:100%;z-index:0';overlay.prepend(renderer.domElement);overlay.style.backgroundImage='none';prompt.style.zIndex=4;
   scene=new T.Scene();window.addConnectedCity?.(T,scene,true);scene.background=new T.Color(0xe7aa77);scene.fog=new T.Fog(0xe7aa77,130,520);camera=new T.PerspectiveCamera(52,1,.1,900);
   scene.add(new T.HemisphereLight(0xffe2ad,0x4d5061,2));const sunLight=new T.DirectionalLight(0xffc879,3);sunLight.position.set(-80,120,-180);scene.add(sunLight);
   const mat=(color)=>new T.MeshStandardMaterial({color,roughness:.6,metalness:.3});
@@ -60,13 +60,14 @@
   for(let i=0;i<55;i++){const p=new T.Mesh(new T.SphereGeometry(.055,4,3),new T.MeshBasicMaterial({color:i%2?0xffb149:0x96eaff}));scene.add(p);sparks.push(p);}
   return true;
  }
+ function releaseOpeningRenderer(){if(!renderer)return;const retired=renderer;retired.domElement.dataset.unbrokenRetired='true';window.heroForgetGraphicsCanvas?.(retired.domElement);retired.domElement.remove();retired.dispose();retired.forceContextLoss?.();renderer=null;scene=null;camera=null;ecal=null;dark=null;beam=null;flash=null;traffic.length=walkers.length=dust.length=sparks.length=0;openingGraphicsLost=false;openingRenderFailed=false;window.heroClearRenderFailure?.('opening');}
  function deliver(){if(delivered)return;delivered=true;window.dispatchEvent(new Event('heroic-opening-finished'));}
- function finish(){if(!active)return;active=false;stopSong();cancelAnimationFrame(raf);deliver();overlay.hidden=true;overlay.style.opacity=1;document.body.classList.remove('opening-intro-active');page.forEach((p,i)=>p.inert=previous[i]);if(trafficGain)trafficGain.gain.setTargetAtTime(0,audio.currentTime,.02);if(master)master.gain.setTargetAtTime(0,audio.currentTime,.2);}
+ function finish(){if(!active)return;active=false;stopSong();cancelAnimationFrame(raf);releaseOpeningRenderer();deliver();overlay.hidden=true;overlay.style.opacity=1;document.body.classList.remove('opening-intro-active');page.forEach((p,i)=>p.inert=previous[i]);if(trafficGain)trafficGain.gain.setTargetAtTime(0,audio.currentTime,.02);if(master)master.gain.setTargetAtTime(0,audio.currentTime,.2);}
  window.playHeroOpeningIntro=()=>{if(active)return;active=true;stopSong();songBlocked=false;delivered=false;age=0;editedCamera=null;editedLook=null;last=performance.now();overlay.hidden=false;overlay.style.opacity=1;curtain.style.opacity=1;prompt.hidden=false;status.textContent='Preparing Ecal’s opening…';previous=page.map(p=>p.inert);page.forEach(p=>p.inert=true);document.body.classList.add('opening-intro-active');overlay.focus();audioStart();window.dispatchEvent(new Event('heroic-opening-started'));raf=requestAnimationFrame(frame);};
- function frame(now){if(!active)return;raf=requestAnimationFrame(frame);const dt=Math.min(.05,(now-last)/1000);last=now;if(document.hidden)return;
+ function frame(now){if(!active)return;raf=requestAnimationFrame(frame);const dt=Math.min(.05,(now-last)/1000);last=now;if(document.hidden||openingGraphicsLost||window.heroGraphicsContextLost)return;
   try{if(!setup())return;if(!ecal.userData.glbRig||!dark.userData.glbRig){status.textContent='Loading Ecal and Dark Armored…';return;}
   window.resetCharacterPose?.(ecal);window.resetCharacterPose?.(dark);
-  prompt.hidden=true;age+=dt;
+  prompt.hidden=true;age+=openingRenderFailed?0:dt;
   // Short editorial cut: preserve the flip's physical timing, trim travel and repeated combat.
   const cuts=[[0,0],[6,15],[10,30],[13,34],[15,35.8],[18,47.8],[20,50],[26,56],[26,90],[29,99],[33,114],[39,125],[43,132]];
   let ci=0;while(ci<cuts.length-2&&age>=cuts[ci+1][0])ci++;
@@ -130,10 +131,11 @@
   const splitCaption=window.openingPortalSplit?.(T,scene,ecal,dark,eye,target,a);if(a>=90){caption.textContent=splitCaption||'';roll=0;curtain.style.opacity=ease(a,130,132);}
   if(!editedCamera){editedCamera=eye.clone();editedLook=target.clone();}
   editedCamera.lerp(eye,1-Math.exp(-dt*12));editedLook.lerp(target,1-Math.exp(-dt*14));
-  camera.position.copy(editedCamera);camera.up.set(0,1,0);camera.lookAt(editedLook);camera.rotateZ(roll);const w=overlay.clientWidth||innerWidth,h=overlay.clientHeight||innerHeight;if(renderer.domElement.width!==Math.floor(w*renderer.getPixelRatio())||renderer.domElement.height!==Math.floor(h*renderer.getPixelRatio()))renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();window.stabilizeCharacterPose?.(ecal);window.stabilizeCharacterPose?.(dark);renderer.render(scene,camera);if(!songReady){songReady=true;playSong();}
-  }catch(error){stopSong();console.error('Opening cinematic:',error);prompt.hidden=false;status.textContent='The opening could not render. Use Skip Intro to continue.';}
+  camera.position.copy(editedCamera);camera.up.set(0,1,0);camera.lookAt(editedLook);camera.rotateZ(roll);const w=overlay.clientWidth||innerWidth,h=overlay.clientHeight||innerHeight;if(renderer.domElement.width!==Math.floor(w*renderer.getPixelRatio())||renderer.domElement.height!==Math.floor(h*renderer.getPixelRatio()))renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();window.stabilizeCharacterPose?.(ecal);window.stabilizeCharacterPose?.(dark);renderer.render(scene,camera);openingRenderFailed=false;window.heroRenderFrameHealthy?.('opening');if(!songReady){songReady=true;playSong();}else playSong();
+  }catch(error){openingRenderFailed=true;openingSong.pause();window.heroRenderFrameError?.('opening',error);console.error('Opening cinematic:',error);prompt.hidden=false;status.textContent='Restoring the opening scene…';}
  }
  document.querySelector('#skipOpeningIntro').onclick=finish;
  window.addEventListener('keydown',e=>{if(!active)return;if(e.key==='Escape')finish();if(e.key!=='Tab')e.preventDefault();e.stopImmediatePropagation();},true);
  window.addEventListener('keyup',e=>{if(active)e.stopImmediatePropagation();},true);
 })();
+
